@@ -13,12 +13,15 @@
 
 package frc.robot;
 
-import com.ctre.phoenix6.swerve.SwerveModuleConstants;
-import com.ctre.phoenix6.swerve.SwerveModuleConstants.DriveMotorArrangement;
-import com.ctre.phoenix6.swerve.SwerveModuleConstants.SteerMotorArrangement;
+import com.ctre.phoenix6.CANBus;
+import com.ctre.phoenix6.CANBus.CANBusStatus;
+import com.ctre.phoenix6.SignalLogger;
+import edu.wpi.first.net.WebServer;
+import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.Filesystem;
+import edu.wpi.first.wpilibj.Threads;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
-import frc.robot.generated.TunerConstants;
 import org.littletonrobotics.junction.LogFileUtil;
 import org.littletonrobotics.junction.LoggedRobot;
 import org.littletonrobotics.junction.Logger;
@@ -35,6 +38,7 @@ import org.littletonrobotics.junction.wpilog.WPILOGWriter;
 public class Robot extends LoggedRobot {
   private Command autonomousCommand;
   private RobotContainer robotContainer;
+  private CANBus rioBus;
 
   public Robot() {
     // Record metadata
@@ -54,6 +58,7 @@ public class Robot extends LoggedRobot {
         Logger.recordMetadata("GitDirty", "Unknown");
         break;
     }
+    Logger.recordMetadata("TuningMode", String.valueOf(Constants.tuningMode));
 
     // Set up data receivers & replay source
     switch (Constants.currentMode) {
@@ -77,28 +82,28 @@ public class Robot extends LoggedRobot {
         break;
     }
 
-    // Start AdvantageKit logger
-    Logger.start();
+    // Elasic remote layout downloading
+    WebServer.start(5800, Filesystem.getDeployDirectory().getPath());
 
-    // Check for valid swerve config
-    var modules =
-        new SwerveModuleConstants[] {
-          TunerConstants.FrontLeft,
-          TunerConstants.FrontRight,
-          TunerConstants.BackLeft,
-          TunerConstants.BackRight
-        };
-    for (var constants : modules) {
-      if (constants.DriveMotorType != DriveMotorArrangement.TalonFX_Integrated
-          || constants.SteerMotorType != SteerMotorArrangement.TalonFX_Integrated) {
-        throw new RuntimeException(
-            "You are using an unsupported swerve configuration, which this template does not support without manual customization. The 2025 release of Phoenix supports some swerve configurations which were not available during 2025 beta testing, preventing any development and support from the AdvantageKit developers.");
-      }
-    }
+    // Rely on our custom alerts for disconnected controllers
+    DriverStation.silenceJoystickConnectionWarning(true);
+
+    // Start AdvantageKit logger
+    // TODO: 2025 code has a comment sying this should be after RobotContainer. The template has it
+    // before
+    Logger.start();
 
     // Instantiate our RobotContainer. This will perform all our button bindings,
     // and put our autonomous chooser on the dashboard.
     robotContainer = new RobotContainer();
+
+    // Instantiate CAN bus
+    rioBus = new CANBus("rio");
+
+    // uncomment the lines below to log CTRE devices to usb stick
+    SignalLogger.setPath("//media/sda1/logs");
+    SignalLogger.start();
+    // do not call the setPath and will be logged to rio at "/home/lvuser/logs"
   }
 
   /** This function is called periodically during all modes. */
@@ -106,7 +111,8 @@ public class Robot extends LoggedRobot {
   public void robotPeriodic() {
     // Optionally switch the thread to high priority to improve loop
     // timing (see the template project documentation for details)
-    // Threads.setCurrentThreadPriority(true, 99);
+    // TODO: Learn more about this
+    Threads.setCurrentThreadPriority(true, 99);
 
     // Runs the Scheduler. This is responsible for polling buttons, adding
     // newly-scheduled commands, running already-scheduled commands, removing
@@ -115,8 +121,16 @@ public class Robot extends LoggedRobot {
     // the Command-based framework to work.
     CommandScheduler.getInstance().run();
 
-    // Return to non-RT thread priority (do not modify the first argument)
-    // Threads.setCurrentThreadPriority(false, 10);
+    // Return to non-RT thread priority
+    Threads.setCurrentThreadPriority(false, 10);
+
+    robotContainer.updateAlerts();
+
+    CANBusStatus canInfo = rioBus.getStatus();
+    Logger.recordOutput("CANBUS/rio/Util", canInfo.BusUtilization);
+    Logger.recordOutput("CANBUS/rio/Status", canInfo.Status.getName());
+    if (!canInfo.Status.isOK())
+      Logger.recordOutput("CANBUS/rio/Desc", canInfo.Status.getDescription());
   }
 
   /** This function is called once when the robot is disabled. */

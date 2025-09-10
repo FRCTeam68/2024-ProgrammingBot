@@ -1,18 +1,7 @@
-// Copyright 2021-2025 FRC 6328
-// http://github.com/Mechanical-Advantage
-//
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// version 3 as published by the Free Software Foundation or
-// available in the root directory of this project.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU General Public License for more details.
-
 package frc.robot.subsystems.drive;
 
+import com.ctre.phoenix6.configs.Slot0Configs;
+import com.ctre.phoenix6.signals.MagnetHealthValue;
 import edu.wpi.first.math.geometry.Rotation2d;
 import org.littletonrobotics.junction.AutoLog;
 
@@ -23,15 +12,24 @@ public interface ModuleIO {
     public double drivePositionRad = 0.0;
     public double driveVelocityRadPerSec = 0.0;
     public double driveAppliedVolts = 0.0;
-    public double driveCurrentAmps = 0.0;
+    public double driveSupplyCurrentAmps = 0.0;
+    public double driveTorqueCurrentAmps = 0.0;
+    public double driveTempCelsius = 0.0;
+    public boolean driveTempFault = false;
 
     public boolean turnConnected = false;
-    public boolean turnEncoderConnected = false;
-    public Rotation2d turnAbsolutePosition = new Rotation2d();
     public Rotation2d turnPosition = new Rotation2d();
     public double turnVelocityRadPerSec = 0.0;
     public double turnAppliedVolts = 0.0;
-    public double turnCurrentAmps = 0.0;
+    public double turnSupplyCurrentAmps = 0.0;
+    public double turnTorqueCurrentAmps = 0.0;
+    public double turnTempCelsius = 0.0;
+    public boolean turnTempFault = false;
+
+    public boolean turnEncoderConnected = false;
+    public Rotation2d turnAbsolutePosition = new Rotation2d();
+    public MagnetHealthValue turnMagnetHealth = MagnetHealthValue.Magnet_Invalid;
+    public boolean turnEncoderSyncStickyFault = true;
 
     public double[] odometryTimestamps = new double[] {};
     public double[] odometryDrivePositionsRad = new double[] {};
@@ -52,4 +50,14 @@ public interface ModuleIO {
 
   /** Run the turn motor to the specified rotation. */
   public default void setTurnPosition(Rotation2d rotation) {}
+
+  /** Set slot gains for closed loop control on drive motor. */
+  public default void setDrivePID(Slot0Configs config) {}
+
+  /** Set slot gains for closed loop control on turn motor. */
+  public default void setTurnPID(Slot0Configs config) {}
+
+  /** Set brake mode on drive motor */
+  // TODO: do we want this?
+  public default void setBrakeMode(boolean enabled) {}
 }

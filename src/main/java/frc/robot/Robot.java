@@ -22,6 +22,8 @@ import edu.wpi.first.wpilibj.Filesystem;
 import edu.wpi.first.wpilibj.Threads;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
+import frc.robot.util.LoggedTracer;
+import frc.robot.util.PhoenixUtil;
 import org.littletonrobotics.junction.LogFileUtil;
 import org.littletonrobotics.junction.LoggedRobot;
 import org.littletonrobotics.junction.Logger;
@@ -61,7 +63,8 @@ public class Robot extends LoggedRobot {
     Logger.recordMetadata("TuningMode", String.valueOf(Constants.tuningMode));
 
     // Set up data receivers & replay source
-    switch (Constants.currentMode) {
+    // TODO: MA is logging using RLOGServer instead of NT4Publisher. What is better?
+    switch (Constants.getMode()) {
       case REAL:
         // Running on a real robot, log to a USB stick ("/U/logs")
         Logger.addDataReceiver(new WPILOGWriter());
@@ -101,14 +104,22 @@ public class Robot extends LoggedRobot {
     rioBus = new CANBus("rio");
 
     // uncomment the lines below to log CTRE devices to usb stick
+    // TODO: do we need to be logging this?
     SignalLogger.setPath("//media/sda1/logs");
     SignalLogger.start();
     // do not call the setPath and will be logged to rio at "/home/lvuser/logs"
+
+    // Threads.setCurrentThreadPriority(true, 1);
   }
 
   /** This function is called periodically during all modes. */
   @Override
   public void robotPeriodic() {
+    // Refresh all Phoenix signals
+    LoggedTracer.reset();
+    PhoenixUtil.refreshAll();
+    LoggedTracer.record("PhoenixRefresh");
+
     // Optionally switch the thread to high priority to improve loop
     // timing (see the template project documentation for details)
     // TODO: Learn more about this
@@ -120,6 +131,7 @@ public class Robot extends LoggedRobot {
     // This must be called from the robot's periodic block in order for anything in
     // the Command-based framework to work.
     CommandScheduler.getInstance().run();
+    LoggedTracer.record("Commands");
 
     // Return to non-RT thread priority
     Threads.setCurrentThreadPriority(false, 10);
@@ -131,11 +143,17 @@ public class Robot extends LoggedRobot {
     Logger.recordOutput("CANBUS/rio/Status", canInfo.Status.getName());
     if (!canInfo.Status.isOK())
       Logger.recordOutput("CANBUS/rio/Desc", canInfo.Status.getDescription());
+
+    // Record cycle time
+    LoggedTracer.record("RobotPeriodic");
   }
 
   /** This function is called once when the robot is disabled. */
   @Override
-  public void disabledInit() {}
+  public void disabledInit() {
+    // TODO: do we want this. it help during testing, but slows down the trasition after auto
+    robotContainer.stopSubsystems();
+  }
 
   /** This function is called periodically when disabled. */
   @Override
@@ -146,7 +164,6 @@ public class Robot extends LoggedRobot {
   public void autonomousInit() {
     autonomousCommand = robotContainer.getAutonomousCommand();
 
-    // schedule the autonomous command (example)
     if (autonomousCommand != null) {
       autonomousCommand.schedule();
     }

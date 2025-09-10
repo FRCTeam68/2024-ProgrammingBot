@@ -1,21 +1,6 @@
-// Copyright 2021-2025 FRC 6328
-// http://github.com/Mechanical-Advantage
-//
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// version 3 as published by the Free Software Foundation or
-// available in the root directory of this project.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU General Public License for more details.
-
 package frc.robot.subsystems.drive;
 
-import com.ctre.phoenix6.configs.CANcoderConfiguration;
-import com.ctre.phoenix6.configs.TalonFXConfiguration;
-import com.ctre.phoenix6.swerve.SwerveModuleConstants;
+import com.ctre.phoenix6.signals.MagnetHealthValue;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -53,19 +38,15 @@ public class ModuleIOSim implements ModuleIO {
   private double driveAppliedVolts = 0.0;
   private double turnAppliedVolts = 0.0;
 
-  public ModuleIOSim(
-      SwerveModuleConstants<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>
-          constants) {
+  public ModuleIOSim() {
     // Create drive and turn sim models
     driveSim =
         new DCMotorSim(
-            LinearSystemId.createDCMotorSystem(
-                DRIVE_GEARBOX, constants.DriveInertia, constants.DriveMotorGearRatio),
+            LinearSystemId.createDCMotorSystem(DRIVE_GEARBOX, 0.1, ModuleIOComp.driveReduction),
             DRIVE_GEARBOX);
     turnSim =
         new DCMotorSim(
-            LinearSystemId.createDCMotorSystem(
-                TURN_GEARBOX, constants.SteerInertia, constants.SteerMotorGearRatio),
+            LinearSystemId.createDCMotorSystem(TURN_GEARBOX, 0.05, ModuleIOComp.turnReduction),
             TURN_GEARBOX);
 
     // Enable wrapping for turn PID
@@ -98,16 +79,19 @@ public class ModuleIOSim implements ModuleIO {
     inputs.drivePositionRad = driveSim.getAngularPositionRad();
     inputs.driveVelocityRadPerSec = driveSim.getAngularVelocityRadPerSec();
     inputs.driveAppliedVolts = driveAppliedVolts;
-    inputs.driveCurrentAmps = Math.abs(driveSim.getCurrentDrawAmps());
+    inputs.driveSupplyCurrentAmps = Math.abs(driveSim.getCurrentDrawAmps());
 
     // Update turn inputs
     inputs.turnConnected = true;
-    inputs.turnEncoderConnected = true;
-    inputs.turnAbsolutePosition = new Rotation2d(turnSim.getAngularPositionRad());
     inputs.turnPosition = new Rotation2d(turnSim.getAngularPositionRad());
     inputs.turnVelocityRadPerSec = turnSim.getAngularVelocityRadPerSec();
     inputs.turnAppliedVolts = turnAppliedVolts;
-    inputs.turnCurrentAmps = Math.abs(turnSim.getCurrentDrawAmps());
+    inputs.turnSupplyCurrentAmps = Math.abs(turnSim.getCurrentDrawAmps());
+
+    inputs.turnEncoderConnected = true;
+    inputs.turnAbsolutePosition = new Rotation2d(turnSim.getAngularPositionRad());
+    inputs.turnMagnetHealth = MagnetHealthValue.Magnet_Green;
+    inputs.turnEncoderSyncStickyFault = false;
 
     // Update odometry inputs (50Hz because high-frequency odometry in sim doesn't matter)
     inputs.odometryTimestamps = new double[] {Timer.getFPGATimestamp()};

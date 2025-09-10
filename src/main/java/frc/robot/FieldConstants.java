@@ -12,12 +12,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.wpi.first.apriltag.AprilTagFieldLayout;
 import edu.wpi.first.math.geometry.*;
 import edu.wpi.first.math.util.Units;
-import edu.wpi.first.wpilibj.Filesystem;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.*;
-import lambok.Getter;
-import lambok.RequiredArgsConstructor;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Contains various field dimensions and useful reference points. All units are in meters and poses
@@ -31,6 +30,7 @@ public class FieldConstants {
   public static final double startingLineX =
       Units.inchesToMeters(299.438); // Measured from the inside of starting line
   public static final double algaeDiameter = Units.inchesToMeters(16);
+  public static final double coralDiameter = Units.inchesToMeters(4.5);
 
   public static class Processor {
     public static final Pose2d centerFace =
@@ -38,9 +38,18 @@ public class FieldConstants {
             AprilTagLayoutType.OFFICIAL.getLayout().getTagPose(16).get().getX(),
             0,
             Rotation2d.fromDegrees(90));
+    public static final Pose2d opposingCenterFace =
+        new Pose2d(
+            AprilTagLayoutType.OFFICIAL.getLayout().getTagPose(3).get().getX(),
+            fieldWidth,
+            Rotation2d.fromDegrees(-90));
   }
 
   public static class Barge {
+    public static final double netWidth = Units.inchesToMeters(40.0);
+    public static final double netHeight = Units.inchesToMeters(88.0);
+
+    public static final double cageWidth = Units.inchesToMeters(6.0);
     public static final Translation2d farCage =
         new Translation2d(Units.inchesToMeters(345.428), Units.inchesToMeters(286.779));
     public static final Translation2d middleCage =
@@ -105,10 +114,10 @@ public class FieldConstants {
               new Pose3d(
                   new Translation3d(
                       poseDirection
-                          .transformBy(new Transform2d(adjustX, adjustY, new Rotation2d()))
+                          .transformBy(new Transform2d(adjustX, adjustY, Rotation2d.kZero))
                           .getX(),
                       poseDirection
-                          .transformBy(new Transform2d(adjustX, adjustY, new Rotation2d()))
+                          .transformBy(new Transform2d(adjustX, adjustY, Rotation2d.kZero))
                           .getY(),
                       level.height),
                   new Rotation3d(
@@ -119,10 +128,10 @@ public class FieldConstants {
               new Pose3d(
                   new Translation3d(
                       poseDirection
-                          .transformBy(new Transform2d(adjustX, -adjustY, new Rotation2d()))
+                          .transformBy(new Transform2d(adjustX, -adjustY, Rotation2d.kZero))
                           .getX(),
                       poseDirection
-                          .transformBy(new Transform2d(adjustX, -adjustY, new Rotation2d()))
+                          .transformBy(new Transform2d(adjustX, -adjustY, Rotation2d.kZero))
                           .getY(),
                       level.height),
                   new Rotation3d(
@@ -146,21 +155,25 @@ public class FieldConstants {
   public static class StagingPositions {
     // Measured from the center of the ice cream
     public static final double separation = Units.inchesToMeters(72.0);
-    public static final Pose2d middleIceCream =
-        new Pose2d(Units.inchesToMeters(48), fieldWidth / 2.0, new Rotation2d());
-    public static final Pose2d leftIceCream =
-        new Pose2d(Units.inchesToMeters(48), middleIceCream.getY() + separation, new Rotation2d());
-    public static final Pose2d rightIceCream =
-        new Pose2d(Units.inchesToMeters(48), middleIceCream.getY() - separation, new Rotation2d());
+    public static final Translation2d[] iceCreams = new Translation2d[3];
+
+    static {
+      for (int i = 0; i < 3; i++) {
+        iceCreams[i] =
+            new Translation2d(
+                Units.inchesToMeters(48), fieldWidth / 2.0 - separation + separation * i);
+      }
+    }
   }
 
   public enum ReefLevel {
-    L1(Units.inchesToMeters(25.0), 0),
-    L2(Units.inchesToMeters(31.875 - Math.cos(Math.toRadians(35.0)) * 0.625), -35),
-    L3(Units.inchesToMeters(47.625 - Math.cos(Math.toRadians(35.0)) * 0.625), -35),
-    L4(Units.inchesToMeters(72), -90);
+    L1(0, Units.inchesToMeters(25.0), 0),
+    L2(1, Units.inchesToMeters(31.875 - Math.cos(Math.toRadians(35.0)) * 0.625), -35),
+    L3(2, Units.inchesToMeters(47.625 - Math.cos(Math.toRadians(35.0)) * 0.625), -35),
+    L4(3, Units.inchesToMeters(72), -90);
 
-    ReefLevel(double height, double pitch) {
+    ReefLevel(int levelNumber, double height, double pitch) {
+      this.levelNumber = levelNumber;
       this.height = height;
       this.pitch = pitch; // Degrees
     }
@@ -172,6 +185,7 @@ public class FieldConstants {
           .orElse(L4);
     }
 
+    public final int levelNumber;
     public final double height;
     public final double pitch;
   }
@@ -186,33 +200,28 @@ public class FieldConstants {
     NO_BARGE("2025-no-barge"),
     BLUE_REEF("2025-blue-reef"),
     RED_REEF("2025-red-reef"),
-    FIELD_BORDER("2025-field-border");
+    NONE("2025-none");
 
     AprilTagLayoutType(String name) {
-      if (Constants.disableHAL) {
-        layout = null;
-      } else {
-        try {
-          layout =
-              new AprilTagFieldLayout(
-                  Path.of(
-                      Filesystem.getDeployDirectory().getPath(),
-                      "apriltags",
-                      fieldType.getJsonFolder(),
-                      name + ".json"));
-        } catch (IOException e) {
-          throw new RuntimeException(e);
-        }
+      try {
+        layout =
+            new AprilTagFieldLayout(
+                Path.of(
+                    "src",
+                    "main",
+                    "deploy",
+                    "apriltags",
+                    fieldType.getJsonFolder(),
+                    "2025-official.json"));
+      } catch (IOException e) {
+        throw new RuntimeException(e);
       }
-      if (layout == null) {
-        layoutString = "";
-      } else {
-        try {
-          layoutString = new ObjectMapper().writeValueAsString(layout);
-        } catch (JsonProcessingException e) {
-          throw new RuntimeException(
-              "Failed to serialize AprilTag layout JSON " + toString() + "for Northstar");
-        }
+
+      try {
+        layoutString = new ObjectMapper().writeValueAsString(layout);
+      } catch (JsonProcessingException e) {
+        throw new RuntimeException(
+            "Failed to serialize AprilTag layout JSON " + toString() + "for Northstar");
       }
     }
 
@@ -222,7 +231,11 @@ public class FieldConstants {
 
   public record CoralObjective(int branchId, ReefLevel reefLevel) {}
 
-  public record AlgaeObjective(int id) {}
+  public record AlgaeObjective(int id, boolean low) {
+    public AlgaeObjective(int id) {
+      this(id, id % 2 == 1);
+    }
+  }
 
   @RequiredArgsConstructor
   public enum FieldType {

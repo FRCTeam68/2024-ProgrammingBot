@@ -32,8 +32,8 @@ import java.util.Queue;
 public class ModuleIOComp implements ModuleIO {
   private static final double driveCurrentLimitAmps = 80;
   private static final double turnCurrentLimitAmps = 40;
-  public static final double driveReduction = (50.0 / 14.0) * (16.0 / 28.0) * (45.0 / 15.0);
-  public static final double turnReduction = (150.0 / 7.0);
+  public static final double driveReduction = 8.142857142857142;
+  public static final double turnReduction = 21.428571428571427;
 
   // Hardware objects
   private final TalonFX driveTalon;
@@ -64,7 +64,6 @@ public class ModuleIOComp implements ModuleIO {
   private final StatusSignal<Current> driveSupplyCurrent;
   private final StatusSignal<Current> driveTorqueCurrent;
   private final StatusSignal<Temperature> driveTempCelsius;
-  private final StatusSignal<Boolean> driveTempFault;
 
   // Inputs from turn motor
   private final StatusSignal<Angle> turnAbsolutePosition;
@@ -76,13 +75,12 @@ public class ModuleIOComp implements ModuleIO {
   private final StatusSignal<Current> turnSupplyCurrent;
   private final StatusSignal<Current> turnTorqueCurrent;
   private final StatusSignal<Temperature> turnTempCelsius;
-  private final StatusSignal<Boolean> turnTempFault;
   private final StatusSignal<Boolean> turnEncoderSyncStickyFault;
 
   public ModuleIOComp(ModuleConfig constants) {
-    driveTalon = new TalonFX(constants.driveMotorId(), DriveConstants.canbus.getName());
-    turnTalon = new TalonFX(constants.turnMotorId(), DriveConstants.canbus.getName());
-    cancoder = new CANcoder(constants.encoderId(), DriveConstants.canbus.getName());
+    driveTalon = new TalonFX(constants.driveMotorId(), DriveConstants.canbus);
+    turnTalon = new TalonFX(constants.turnMotorId(), DriveConstants.canbus);
+    cancoder = new CANcoder(constants.encoderId(), DriveConstants.canbus);
 
     // Configure drive motor
     driveConfig.MotorOutput.NeutralMode = NeutralModeValue.Brake;
@@ -142,7 +140,6 @@ public class ModuleIOComp implements ModuleIO {
     driveSupplyCurrent = driveTalon.getSupplyCurrent();
     driveTorqueCurrent = driveTalon.getTorqueCurrent();
     driveTempCelsius = driveTalon.getDeviceTemp();
-    driveTempFault = driveTalon.getFault_DeviceTemp();
 
     // Create turn status signals
     turnAbsolutePosition = cancoder.getAbsolutePosition();
@@ -155,7 +152,6 @@ public class ModuleIOComp implements ModuleIO {
     turnSupplyCurrent = turnTalon.getSupplyCurrent();
     turnTorqueCurrent = turnTalon.getTorqueCurrent();
     turnTempCelsius = turnTalon.getDeviceTemp();
-    turnTempFault = turnTalon.getFault_DeviceTemp();
     turnEncoderSyncStickyFault = turnTalon.getStickyFault_FusedSensorOutOfSync();
 
     // Configure periodic frames
@@ -173,18 +169,16 @@ public class ModuleIOComp implements ModuleIO {
         turnSupplyCurrent,
         turnTorqueCurrent,
         turnEncoderSyncStickyFault);
-    BaseStatusSignal.setUpdateFrequencyForAll(
-        4.0, driveTempCelsius, driveTempFault, turnTempCelsius, turnTempFault);
+    BaseStatusSignal.setUpdateFrequencyForAll(4.0, driveTempCelsius, turnTempCelsius);
     tryUntilOk(5, () -> ParentDevice.optimizeBusUtilizationForAll(driveTalon, turnTalon, cancoder));
     PhoenixUtil.registerSignals(
-        (DriveConstants.canbus.getName() == "rio") ? false : true,
+        (DriveConstants.canbus == "rio") ? false : true,
         drivePosition,
         driveVelocity,
         driveAppliedVolts,
         driveSupplyCurrent,
         driveTorqueCurrent,
         driveTempCelsius,
-        driveTempFault,
         turnAbsolutePosition,
         turnMagnetHealth,
         turnPosition,
@@ -212,7 +206,6 @@ public class ModuleIOComp implements ModuleIO {
     inputs.driveSupplyCurrentAmps = driveSupplyCurrent.getValueAsDouble();
     inputs.driveTorqueCurrentAmps = driveTorqueCurrent.getValueAsDouble();
     inputs.driveTempCelsius = driveTempCelsius.getValueAsDouble();
-    inputs.driveTempFault = driveTempFault.getValue();
 
     // Update turn motor inputs
     inputs.turnConnected =
@@ -224,7 +217,6 @@ public class ModuleIOComp implements ModuleIO {
     inputs.turnSupplyCurrentAmps = turnSupplyCurrent.getValueAsDouble();
     inputs.turnTorqueCurrentAmps = turnTorqueCurrent.getValueAsDouble();
     inputs.turnTempCelsius = turnTempCelsius.getValueAsDouble();
-    inputs.turnTempFault = turnTempFault.getValue();
 
     // Update turn encoder inputs
     inputs.turnEncoderConnected =

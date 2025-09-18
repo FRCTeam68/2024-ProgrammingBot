@@ -12,6 +12,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.wpi.first.apriltag.AprilTagFieldLayout;
 import edu.wpi.first.math.geometry.*;
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.wpilibj.Filesystem;
+import frc.robot.util.AllianceFlipUtil.FlipType;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.*;
@@ -24,6 +26,8 @@ import lombok.RequiredArgsConstructor;
  */
 public class FieldConstants {
   public static final FieldType fieldType = FieldType.WELDED;
+
+  public static final FlipType flipType = FlipType.Mirrored;
 
   public static final double fieldLength = AprilTagLayoutType.OFFICIAL.getLayout().getFieldLength();
   public static final double fieldWidth = AprilTagLayoutType.OFFICIAL.getLayout().getFieldWidth();
@@ -207,12 +211,10 @@ public class FieldConstants {
         layout =
             new AprilTagFieldLayout(
                 Path.of(
-                    "src",
-                    "main",
-                    "deploy",
+                    Filesystem.getDeployDirectory().getPath(),
                     "apriltags",
                     fieldType.getJsonFolder(),
-                    "2025-official.json"));
+                    name + ".json"));
       } catch (IOException e) {
         throw new RuntimeException(e);
       }
@@ -220,21 +222,12 @@ public class FieldConstants {
       try {
         layoutString = new ObjectMapper().writeValueAsString(layout);
       } catch (JsonProcessingException e) {
-        throw new RuntimeException(
-            "Failed to serialize AprilTag layout JSON " + toString() + "for Northstar");
+        throw new RuntimeException("Failed to serialize AprilTag layout JSON " + toString());
       }
     }
 
     private final AprilTagFieldLayout layout;
     private final String layoutString;
-  }
-
-  public record CoralObjective(int branchId, ReefLevel reefLevel) {}
-
-  public record AlgaeObjective(int id, boolean low) {
-    public AlgaeObjective(int id) {
-      this(id, id % 2 == 1);
-    }
   }
 
   @RequiredArgsConstructor

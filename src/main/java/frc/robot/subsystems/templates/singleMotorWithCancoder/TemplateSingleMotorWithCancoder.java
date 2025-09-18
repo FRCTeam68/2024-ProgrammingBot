@@ -69,7 +69,7 @@ public class TemplateSingleMotorWithCancoder extends SubsystemBase {
     io.updateInputs(inputs);
     Logger.processInputs("Shooter" + name, inputs);
     disconnectedAlert.set(!inputs.talonConnected);
-    tempAlert.set(inputs.tempFault);
+    tempAlert.set(inputs.tempCelsius > Constants.warningTemp);
     Logger.recordOutput("Shooter" + name + "/AtSetpoint", atSetpoint());
 
     if (controlMode != prevControlMode || setpoint != prevSetpoint) {

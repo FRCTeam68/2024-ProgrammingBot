@@ -1,4 +1,4 @@
-package frc.robot.subsystems.sensors;
+package frc.robot.subsystems.Devbot.sensors;
 
 import edu.wpi.first.math.filter.Debouncer;
 import edu.wpi.first.math.filter.Debouncer.DebounceType;
@@ -31,6 +31,7 @@ public class NoteSensor extends SubsystemBase {
     }
   }
 
+  @Override
   public void periodic() {
     // TODO: code in automatic simulated note
     switch (Constants.getMode()) {

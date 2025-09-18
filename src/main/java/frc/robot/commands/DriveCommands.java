@@ -1,5 +1,10 @@
 package frc.robot.commands;
 
+import static edu.wpi.first.units.Units.RadiansPerSecond;
+
+import com.therekrab.autopilot.APTarget;
+import com.therekrab.autopilot.Autopilot;
+import com.therekrab.autopilot.Autopilot.APResult;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.filter.SlewRateLimiter;
@@ -10,19 +15,20 @@ import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.math.util.Units;
-import edu.wpi.first.wpilibj.DriverStation;
-import edu.wpi.first.wpilibj.DriverStation.Alliance;
+import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import frc.robot.subsystems.drive.Drive;
 import frc.robot.subsystems.drive.DriveConstants;
+import frc.robot.util.AllianceFlipUtil;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.function.DoubleSupplier;
 import java.util.function.Supplier;
+import org.littletonrobotics.junction.Logger;
 
 public class DriveCommands {
   private static final double DEADBAND = 0.1;
@@ -77,15 +83,19 @@ public class DriveCommands {
                   linearVelocity.getX() * DriveConstants.maxLinearSpeed,
                   linearVelocity.getY() * DriveConstants.maxLinearSpeed,
                   omega * DriveConstants.maxAngularSpeed);
-          boolean isFlipped =
-              DriverStation.getAlliance().isPresent()
-                  && DriverStation.getAlliance().get() == Alliance.Red;
           drive.runVelocity(
               ChassisSpeeds.fromFieldRelativeSpeeds(
-                  speeds,
-                  isFlipped
-                      ? drive.getRotation().plus(new Rotation2d(Math.PI))
-                      : drive.getRotation()));
+                  speeds, AllianceFlipUtil.apply(drive.getRotation())));
+
+          Autopilot autopilot = new Autopilot(DriveConstants.autoPilot);
+          APTarget target = new APTarget(new Pose2d(8, 1, new Rotation2d()));
+          Logger.recordOutput("Autopilot/target", target.getReference());
+
+          APResult result = autopilot.calculate(drive.getPose(), drive.getChassisSpeeds(), target);
+
+          Logger.recordOutput("Autopilot/vx", result.vx());
+          Logger.recordOutput("Autopilot/vy", result.vy());
+          Logger.recordOutput("Autopilot/rot", result.targetAngle().getRadians());
         },
         drive);
   }
@@ -128,20 +138,62 @@ public class DriveCommands {
                       linearVelocity.getX() * DriveConstants.maxLinearSpeed,
                       linearVelocity.getY() * DriveConstants.maxLinearSpeed,
                       omega);
-              boolean isFlipped =
-                  DriverStation.getAlliance().isPresent()
-                      && DriverStation.getAlliance().get() == Alliance.Red;
               drive.runVelocity(
                   ChassisSpeeds.fromFieldRelativeSpeeds(
-                      speeds,
-                      isFlipped
-                          ? drive.getRotation().plus(new Rotation2d(Math.PI))
-                          : drive.getRotation()));
+                      speeds, AllianceFlipUtil.apply(drive.getRotation())));
             },
             drive)
 
         // Reset PID controller when command starts
         .beforeStarting(() -> angleController.reset(drive.getRotation().getRadians()));
+  }
+
+  public static Command AutopilotDriveToPose(
+      Drive drive, Supplier<Pose2d> targetPose, Supplier<Rotation2d> entryAngle) {
+    Autopilot autopilot = new Autopilot(DriveConstants.autoPilot);
+
+    return Commands.run(
+            () -> {
+              APTarget target;
+              if (entryAngle == null) {
+                target = new APTarget(targetPose.get()).withoutEntryAngle();
+              } else {
+                target = new APTarget(targetPose.get()).withEntryAngle(entryAngle.get());
+              }
+
+              Logger.recordOutput("Autopilot/target", target.getReference());
+
+              APResult result =
+                  autopilot.calculate(
+                      drive.getPose(),
+                      ChassisSpeeds.fromFieldRelativeSpeeds(
+                          drive.getFieldVelocity(), drive.getRotation()),
+                      target);
+
+              Logger.recordOutput("Autopilot/vx", result.vx());
+              Logger.recordOutput("Autopilot/vy", result.vy());
+
+              drive.runVelocity(
+                  ChassisSpeeds.fromFieldRelativeSpeeds(
+                      new ChassisSpeeds(
+                          result.vx(),
+                          result.vy(),
+                          AngularVelocity.ofRelativeUnits(
+                              result.targetAngle().getRadians(), RadiansPerSecond)),
+                      AllianceFlipUtil.apply(drive.getRotation())));
+            },
+            drive)
+        .beforeStarting(() -> Logger.recordOutput("Autopilot/State", "Moving To Target"))
+        .until(() -> autopilot.atTarget(drive.getPose(), new APTarget(targetPose.get())))
+        .finallyDo(
+            () -> {
+              if (autopilot.atTarget(drive.getPose(), new APTarget(targetPose.get()))) {
+                Logger.recordOutput("Autopilot/State", "At Target");
+              } else {
+                Logger.recordOutput("Autopilot/State", "Interrupted");
+              }
+            })
+        .repeatedly();
   }
 
   /**

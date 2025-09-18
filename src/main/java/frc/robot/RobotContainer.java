@@ -3,24 +3,25 @@ package frc.robot;
 import com.ctre.phoenix6.configs.SlotConfigs;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
-import com.pathplanner.lib.auto.AutoBuilder;
 import edu.wpi.first.math.geometry.Pose2d;
-import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.geometry.Rotation3d;
-import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.system.plant.DCMotor;
-import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandPS4Controller;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
-import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
-import frc.robot.Constants.CanBus;
+import frc.robot.commands.Devbot.IntakeCommands;
 import frc.robot.commands.DriveCommands;
-import frc.robot.commands.IntakeCommands;
+import frc.robot.subsystems.Devbot.NoteVisualizer;
+import frc.robot.subsystems.Devbot.sensors.NoteSensor;
+import frc.robot.subsystems.Devbot.shooter.Shooter;
+import frc.robot.subsystems.Devbot.wrist.Wrist;
+import frc.robot.subsystems.Devbot.wrist.WristIO;
+import frc.robot.subsystems.Devbot.wrist.WristIOSim;
+import frc.robot.subsystems.Devbot.wrist.WristIOTalonFX;
 import frc.robot.subsystems.drive.Drive;
 import frc.robot.subsystems.drive.DriveConstants;
 import frc.robot.subsystems.drive.GyroIO;
@@ -32,17 +33,11 @@ import frc.robot.subsystems.rollers.RollerSystem;
 import frc.robot.subsystems.rollers.RollerSystemIO;
 import frc.robot.subsystems.rollers.RollerSystemIOSim;
 import frc.robot.subsystems.rollers.RollerSystemIOTalonFX;
-import frc.robot.subsystems.sensors.NoteSensor;
-import frc.robot.subsystems.shooter.Shooter;
 import frc.robot.subsystems.vision.Vision;
+import frc.robot.subsystems.vision.VisionConstants;
 import frc.robot.subsystems.vision.VisionIO;
 import frc.robot.subsystems.vision.VisionIOLimelight;
-import frc.robot.subsystems.wrist.Wrist;
-import frc.robot.subsystems.wrist.WristIO;
-import frc.robot.subsystems.wrist.WristIOSim;
-import frc.robot.subsystems.wrist.WristIOTalonFX;
 import frc.robot.util.AllianceFlipUtil;
-import org.littletonrobotics.junction.Logger;
 import org.littletonrobotics.junction.networktables.LoggedDashboardChooser;
 
 /**
@@ -53,155 +48,166 @@ import org.littletonrobotics.junction.networktables.LoggedDashboardChooser;
  */
 public class RobotContainer {
   // Subsystems
-  private final Drive drive;
-  private final Vision vision;
-  private final Wrist wrist;
-  private final Shooter shooter;
-  private final RollerSystem intake;
-  private final RollerSystem feederLower;
-  private final RollerSystem feederUpper;
-  private final NoteSensor noteSensor;
+  private Drive drive;
+  private Vision vision;
+  private Wrist wrist;
+  private Shooter shooter;
+  private RollerSystem intake;
+  private RollerSystem feederLower;
+  private RollerSystem feederUpper;
+  private NoteSensor noteSensor;
+  private NoteVisualizer noteVisualizer;
 
   // Controllers
   private static final CommandXboxController driverController = new CommandXboxController(0);
-  private static final Alert driverControllerDisconnectedAlert =
-      new Alert("Xbox controller disconnected.", AlertType.kError);
   private static final CommandPS4Controller operatorController = new CommandPS4Controller(1);
-  private static final Alert OperatorControllerDisconnectedAlert =
-      new Alert("PS4 controller disconnected.", AlertType.kError);
+
+  // Alerts
+  private static final Alert driverControllerDisconnectedAlert =
+      new Alert("Driver Xbox controller disconnected.", AlertType.kError);
+  private static final Alert operatorControllerDisconnectedAlert =
+      new Alert("Operator PS4 controller disconnected.", AlertType.kError);
+  private static final Alert noAutoSelectedAlert =
+      new Alert("Please select an auton.", AlertType.kWarning);
 
   // Dashboard inputs
   private final LoggedDashboardChooser<Command> autoChooser;
 
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
   public RobotContainer() {
-    switch (Constants.getMode()) {
-      case REAL:
-        // Real robot, instantiate hardware IO implementations
-        switch (Constants.getRobot()) {
-          case COMPBOT:
-            drive =
-                new Drive(
-                    new GyroIOPigeon2(),
-                    new ModuleIODev(DriveConstants.moduleConfigsComp[0]),
-                    new ModuleIODev(DriveConstants.moduleConfigsComp[1]),
-                    new ModuleIODev(DriveConstants.moduleConfigsComp[2]),
-                    new ModuleIODev(DriveConstants.moduleConfigsComp[3]));
-            break;
+    if (Constants.getMode() != Constants.Mode.REPLAY) {
+      switch (Constants.getRobot()) {
+        case COMPBOT -> {
+          drive =
+              new Drive(
+                  new GyroIOPigeon2(),
+                  new ModuleIODev(DriveConstants.moduleConfigsComp[0]),
+                  new ModuleIODev(DriveConstants.moduleConfigsComp[1]),
+                  new ModuleIODev(DriveConstants.moduleConfigsComp[2]),
+                  new ModuleIODev(DriveConstants.moduleConfigsComp[3]));
 
-          default:
-            drive =
-                new Drive(
-                    new GyroIOPigeon2(),
-                    new ModuleIODev(DriveConstants.moduleConfigsDev[0]),
-                    new ModuleIODev(DriveConstants.moduleConfigsDev[1]),
-                    new ModuleIODev(DriveConstants.moduleConfigsDev[2]),
-                    new ModuleIODev(DriveConstants.moduleConfigsDev[3]));
-            break;
+          vision =
+              new Vision(
+                  drive::addVisionMeasurement,
+                  drive::getPose,
+                  drive::getFieldVelocity,
+                  new VisionIOLimelight(VisionConstants.camera0Name, drive::getRotation),
+                  new VisionIOLimelight(VisionConstants.camera1Name, drive::getRotation));
         }
 
-        vision =
+        case DEVBOT -> {
+          drive =
+              new Drive(
+                  new GyroIOPigeon2(),
+                  new ModuleIODev(DriveConstants.moduleConfigsDev[0]),
+                  new ModuleIODev(DriveConstants.moduleConfigsDev[1]),
+                  new ModuleIODev(DriveConstants.moduleConfigsDev[2]),
+                  new ModuleIODev(DriveConstants.moduleConfigsDev[3]));
+
+          vision =
+              new Vision(
+                  drive::addVisionMeasurement,
+                  drive::getPose,
+                  drive::getFieldVelocity,
+                  new VisionIOLimelight("Intake", drive::getRotation));
+
+          wrist = new Wrist(new WristIOTalonFX());
+
+          shooter = new Shooter();
+
+          intake =
+              new RollerSystem(
+                  "Intake",
+                  new RollerSystemIOTalonFX(
+                      17, "rio", 40, InvertedValue.Clockwise_Positive, NeutralModeValue.Coast, 1));
+
+          feederLower =
+              new RollerSystem(
+                  "FeederLower",
+                  new RollerSystemIOTalonFX(
+                      18, "rio", 40, InvertedValue.Clockwise_Positive, NeutralModeValue.Brake, 1));
+          feederUpper =
+              new RollerSystem(
+                  "FeederUpper",
+                  new RollerSystemIOTalonFX(
+                      19, "rio", 40, InvertedValue.Clockwise_Positive, NeutralModeValue.Brake, 1));
+        }
+
+        case SIMBOT -> {
+          drive =
+              new Drive(
+                  new GyroIO() {},
+                  new ModuleIOSim(),
+                  new ModuleIOSim(),
+                  new ModuleIOSim(),
+                  new ModuleIOSim());
+
+          wrist = new Wrist(new WristIOSim());
+
+          shooter = new Shooter();
+
+          intake =
+              new RollerSystem("Intake", new RollerSystemIOSim(DCMotor.getFalcon500Foc(1), 1, .3));
+
+          feederLower =
+              new RollerSystem(
+                  "FeederLower", new RollerSystemIOSim(DCMotor.getFalcon500Foc(1), 1, .074));
+          feederUpper =
+              new RollerSystem(
+                  "FeederUpper", new RollerSystemIOSim(DCMotor.getFalcon500Foc(1), 1, .074));
+        }
+      }
+    }
+
+    // Replay implementation
+    if (drive == null) {
+      drive =
+          new Drive(
+              new GyroIO() {},
+              new ModuleIO() {},
+              new ModuleIO() {},
+              new ModuleIO() {},
+              new ModuleIO() {});
+    }
+
+    if (vision == null) {
+      switch (Constants.getRobot()) {
+        case COMPBOT -> vision =
             new Vision(
                 drive::addVisionMeasurement,
                 drive::getPose,
                 drive::getFieldVelocity,
-                new VisionIOLimelight("Intake", drive::getRotation));
-
-        wrist = new Wrist(new WristIOTalonFX());
-
-        shooter = new Shooter();
-
-        intake =
-            new RollerSystem(
-                "Intake",
-                new RollerSystemIOTalonFX(
-                    17,
-                    CanBus.rio,
-                    40,
-                    InvertedValue.Clockwise_Positive,
-                    NeutralModeValue.Coast,
-                    1));
-
-        feederLower =
-            new RollerSystem(
-                "FeederLower",
-                new RollerSystemIOTalonFX(
-                    18,
-                    CanBus.rio,
-                    40,
-                    InvertedValue.Clockwise_Positive,
-                    NeutralModeValue.Brake,
-                    1));
-        feederUpper =
-            new RollerSystem(
-                "FeederUpper",
-                new RollerSystemIOTalonFX(
-                    19,
-                    CanBus.rio,
-                    40,
-                    InvertedValue.Clockwise_Positive,
-                    NeutralModeValue.Brake,
-                    1));
-        break;
-
-      case SIM:
-        // Sim robot, instantiate physics sim IO implementations
-        drive =
-            new Drive(
-                new GyroIO() {},
-                new ModuleIOSim(),
-                new ModuleIOSim(),
-                new ModuleIOSim(),
-                new ModuleIOSim());
-
-        vision =
+                new VisionIO() {},
+                new VisionIO() {});
+        case DEVBOT -> vision =
             new Vision(
                 drive::addVisionMeasurement,
                 drive::getPose,
                 drive::getFieldVelocity,
                 new VisionIO() {});
+        default -> vision =
+            new Vision(drive::addVisionMeasurement, drive::getPose, drive::getFieldVelocity);
+      }
+    }
 
-        wrist = new Wrist(new WristIOSim());
+    if (wrist == null) {
+      wrist = new Wrist(new WristIO() {});
+    }
 
-        shooter = new Shooter();
+    if (shooter == null) {
+      shooter = new Shooter();
+    }
 
-        intake =
-            new RollerSystem("Intake", new RollerSystemIOSim(DCMotor.getFalcon500Foc(1), 1, .3));
+    if (intake == null) {
+      intake = new RollerSystem("Intake", new RollerSystemIO() {});
+    }
 
-        feederLower =
-            new RollerSystem(
-                "FeederLower", new RollerSystemIOSim(DCMotor.getFalcon500Foc(1), 1, .074));
-        feederUpper =
-            new RollerSystem(
-                "FeederUpper", new RollerSystemIOSim(DCMotor.getFalcon500Foc(1), 1, .074));
-        break;
+    if (feederLower == null) {
+      feederLower = new RollerSystem("FeederLower", new RollerSystemIO() {});
+    }
 
-      default:
-        // Replayed robot, disable IO implementations
-        drive =
-            new Drive(
-                new GyroIO() {},
-                new ModuleIO() {},
-                new ModuleIO() {},
-                new ModuleIO() {},
-                new ModuleIO() {});
-
-        vision =
-            new Vision(
-                drive::addVisionMeasurement,
-                drive::getPose,
-                drive::getFieldVelocity,
-                new VisionIO() {});
-
-        wrist = new Wrist(new WristIO() {});
-
-        shooter = new Shooter();
-
-        intake = new RollerSystem("Intake", new RollerSystemIO() {});
-
-        feederLower = new RollerSystem("FeederLower", new RollerSystemIO() {});
-        feederUpper = new RollerSystem("FeederUpper", new RollerSystemIO() {});
-        break;
+    if (feederUpper == null) {
+      feederUpper = new RollerSystem("FeederUpper", new RollerSystemIO() {});
     }
 
     intake.setPID(new SlotConfigs().withKP(5).withKD(0).withKS(0));
@@ -212,30 +218,19 @@ public class RobotContainer {
 
     noteSensor = new NoteSensor();
 
-    // Set up auto routines
-    autoChooser = new LoggedDashboardChooser<>("Auto Choices", AutoBuilder.buildAutoChooser());
+    noteVisualizer = new NoteVisualizer(drive::getPose, wrist::getPosition, noteSensor::isHaveNote);
 
-    // Set up SysId routines
-    autoChooser.addOption(
-        "Drive Wheel Radius Characterization", DriveCommands.wheelRadiusCharacterization(drive));
-    autoChooser.addOption(
-        "Drive Simple FF Characterization", DriveCommands.feedforwardCharacterization(drive));
-    autoChooser.addOption(
-        "Drive SysId (Quasistatic Forward)",
-        drive.sysIdQuasistatic(SysIdRoutine.Direction.kForward));
-    autoChooser.addOption(
-        "Drive SysId (Quasistatic Reverse)",
-        drive.sysIdQuasistatic(SysIdRoutine.Direction.kReverse));
-    autoChooser.addOption(
-        "Drive SysId (Dynamic Forward)", drive.sysIdDynamic(SysIdRoutine.Direction.kForward));
-    autoChooser.addOption(
-        "Drive SysId (Dynamic Reverse)", drive.sysIdDynamic(SysIdRoutine.Direction.kReverse));
+    // Set up auto routines
+    autoChooser = new LoggedDashboardChooser<>("Auto Chooser");
+
+    // Set up auto routines
+    autoChooser.addOption("None", Commands.none());
 
     // Configure the button bindings
     configureButtonBindings();
   }
 
-  /** Use this method to define your button->command mappings. */
+  /** Use this method to define button -> command mappings. */
   private void configureButtonBindings() {
     // Default command, normal field-relative drive
     drive.setDefaultCommand(
@@ -264,6 +259,12 @@ public class RobotContainer {
     //             intake, feederLower, feederUpper, wrist, () -> noteSensor.isHaveNote()));
 
     driverController
+        .povLeft()
+        .whileTrue(
+            DriveCommands.AutopilotDriveToPose(
+                drive, () -> new Pose2d(8, 1, new Rotation2d()), null));
+
+    driverController
         .back()
         .onTrue(
             Commands.runOnce(
@@ -286,40 +287,28 @@ public class RobotContainer {
   }
 
   public Command stopSubsystems() {
-    Command command =
-        Commands.parallel(
-            Commands.runOnce(() -> shooter.stop()),
-            Commands.runOnce(() -> wrist.stop()),
-            Commands.runOnce(() -> intake.stop()),
-            Commands.runOnce(() -> feederLower.stop()),
-            Commands.runOnce(() -> feederUpper.stop()));
-    command.addRequirements(shooter, wrist, intake, feederLower, feederUpper);
-    return command;
+    return Commands.run(
+        () -> {
+          shooter.stop();
+          wrist.stop();
+          intake.stop();
+          feederLower.stop();
+          feederUpper.stop();
+        },
+        shooter,
+        wrist,
+        intake,
+        feederLower,
+        feederUpper);
   }
 
   public void updateAlerts() {
     driverControllerDisconnectedAlert.set(!driverController.isConnected());
-    OperatorControllerDisconnectedAlert.set(!operatorController.isConnected());
+    operatorControllerDisconnectedAlert.set(!operatorController.isConnected());
 
-    if (noteSensor.isHaveNote()) {
-      Logger.recordOutput(
-          "RobotPose/Note",
-          new Pose3d[] {
-            new Pose3d(
-                    drive.getPose().getX() + 0.0192236344,
-                    drive.getPose().getY(),
-                    0.3160213644,
-                    new Rotation3d())
-                .rotateAround(
-                    new Translation3d(drive.getPose().getTranslation())
-                        .plus(new Translation3d(-0.0153715466, 0.0, 0.2346029852)),
-                    new Rotation3d(0, Units.degreesToRadians(-wrist.getPosition()), 0))
-                .rotateAround(
-                    new Translation3d(drive.getPose().getTranslation()),
-                    new Rotation3d(drive.getPose().getRotation()))
-          });
-    } else {
-      Logger.recordOutput("RobotPose/Note", new Pose3d[] {});
-    }
+    noAutoSelectedAlert.set(
+        DriverStation.isAutonomous()
+            && DriverStation.isDisabled()
+            && autoChooser.get() == Commands.none());
   }
 }

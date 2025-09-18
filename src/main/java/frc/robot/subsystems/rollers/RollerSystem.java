@@ -47,7 +47,7 @@ public class RollerSystem extends SubsystemBase {
     io.updateInputs(inputs);
     Logger.processInputs(name, inputs);
     disconnectedAlert.set(!inputs.connected);
-    tempAlert.set(inputs.tempFault);
+    tempAlert.set(inputs.tempCelsius > Constants.warningTemp);
 
     Logger.recordOutput(name + "/SetpointVolts", (mode == ControlMode.Voltage) ? setpoint : 0);
     Logger.recordOutput(name + "/SetpointRotPerSec", (mode == ControlMode.Speed) ? setpoint : 0);

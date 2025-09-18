@@ -8,14 +8,13 @@ import org.littletonrobotics.junction.AutoLog;
 public interface TemplateSingleMotorWithCancoderIO {
   @AutoLog
   static class TemplateSinglemotorWithCancoderIOInputs {
+    public boolean talonConnected = false;
     public double positionRotations = 0.0;
     public double velocityRotsPerSec = 0.0;
     public double appliedVoltage = 0.0;
     public double supplyCurrentAmps = 0.0;
     public double torqueCurrentAmps = 0.0;
     public double tempCelsius = 0.0;
-    public boolean talonConnected = false;
-    public boolean tempFault = false;
     public boolean cancoderConnected = false;
     public MagnetHealthValue magnetHealth = MagnetHealthValue.Magnet_Invalid;
   }

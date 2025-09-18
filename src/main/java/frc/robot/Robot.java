@@ -13,8 +13,6 @@
 
 package frc.robot;
 
-import com.ctre.phoenix6.CANBus;
-import com.ctre.phoenix6.CANBus.CANBusStatus;
 import com.ctre.phoenix6.SignalLogger;
 import edu.wpi.first.net.WebServer;
 import edu.wpi.first.wpilibj.DriverStation;
@@ -22,6 +20,7 @@ import edu.wpi.first.wpilibj.Filesystem;
 import edu.wpi.first.wpilibj.Threads;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
+import frc.robot.util.CANUtil;
 import frc.robot.util.LoggedTracer;
 import frc.robot.util.PhoenixUtil;
 import org.littletonrobotics.junction.LogFileUtil;
@@ -40,10 +39,11 @@ import org.littletonrobotics.junction.wpilog.WPILOGWriter;
 public class Robot extends LoggedRobot {
   private Command autonomousCommand;
   private RobotContainer robotContainer;
-  private CANBus rioBus;
 
   public Robot() {
     // Record metadata
+    Logger.recordMetadata("TuningMode", Boolean.toString(Constants.tuningMode));
+    Logger.recordMetadata("Robot", Constants.getRobot().toString());
     Logger.recordMetadata("ProjectName", BuildConstants.MAVEN_NAME);
     Logger.recordMetadata("BuildDate", BuildConstants.BUILD_DATE);
     Logger.recordMetadata("GitSHA", BuildConstants.GIT_SHA);
@@ -60,7 +60,6 @@ public class Robot extends LoggedRobot {
         Logger.recordMetadata("GitDirty", "Unknown");
         break;
     }
-    Logger.recordMetadata("TuningMode", String.valueOf(Constants.tuningMode));
 
     // Set up data receivers & replay source
     // TODO: MA is logging using RLOGServer instead of NT4Publisher. What is better?
@@ -100,14 +99,10 @@ public class Robot extends LoggedRobot {
     // and put our autonomous chooser on the dashboard.
     robotContainer = new RobotContainer();
 
-    // Instantiate CAN bus
-    rioBus = new CANBus("rio");
-
-    // uncomment the lines below to log CTRE devices to usb stick
     // TODO: do we need to be logging this?
     SignalLogger.setPath("//media/sda1/logs");
     SignalLogger.start();
-    // do not call the setPath and will be logged to rio at "/home/lvuser/logs"
+    // do not call the setPath and hoot log will be logged to rio at "/home/lvuser/logs"
 
     // Threads.setCurrentThreadPriority(true, 1);
   }
@@ -138,11 +133,7 @@ public class Robot extends LoggedRobot {
 
     robotContainer.updateAlerts();
 
-    CANBusStatus canInfo = rioBus.getStatus();
-    Logger.recordOutput("CANBUS/rio/Util", canInfo.BusUtilization);
-    Logger.recordOutput("CANBUS/rio/Status", canInfo.Status.getName());
-    if (!canInfo.Status.isOK())
-      Logger.recordOutput("CANBUS/rio/Desc", canInfo.Status.getDescription());
+    CANUtil.logStatus();
 
     // Record cycle time
     LoggedTracer.record("RobotPeriodic");

@@ -1,4 +1,4 @@
-package frc.robot.subsystems.wrist;
+package frc.robot.subsystems.Devbot.wrist;
 
 import static frc.robot.util.PhoenixUtil.tryUntilOk;
 
@@ -28,7 +28,6 @@ import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Current;
 import edu.wpi.first.units.measure.Temperature;
 import edu.wpi.first.units.measure.Voltage;
-import frc.robot.Constants.CanBus;
 import frc.robot.util.PhoenixUtil;
 import lombok.Getter;
 
@@ -51,14 +50,12 @@ public class WristIOTalonFX implements WristIO {
   private final StatusSignal<Current> leaderSupplyCurrent;
   private final StatusSignal<Current> leaderTorqueCurrent;
   private final StatusSignal<Temperature> leaderTempCelsius;
-  private final StatusSignal<Boolean> leaderTempFault;
   private final StatusSignal<Angle> followerPosition;
   private final StatusSignal<AngularVelocity> followerVelocity;
   private final StatusSignal<Voltage> followerAppliedVoltage;
   private final StatusSignal<Current> followerSupplyCurrent;
   private final StatusSignal<Current> followerTorqueCurrent;
   private final StatusSignal<Temperature> followerTempCelsius;
-  private final StatusSignal<Boolean> followerTempFault;
 
   private final Debouncer connectedDebouncer = new Debouncer(0.5, DebounceType.kFalling);
   private final Debouncer followerConnectedDebouncer = new Debouncer(0.5, DebounceType.kFalling);
@@ -71,8 +68,8 @@ public class WristIOTalonFX implements WristIO {
   private final NeutralOut neutralOut = new NeutralOut();
 
   public WristIOTalonFX() {
-    talon = new TalonFX(33, CanBus.rio.getName());
-    followerTalon = new TalonFX(32, CanBus.rio.getName());
+    talon = new TalonFX(33, "rio");
+    followerTalon = new TalonFX(32, "rio");
     followerTalon.setControl(new Follower(talon.getDeviceID(), true));
 
     // Configure Motor
@@ -101,14 +98,12 @@ public class WristIOTalonFX implements WristIO {
     leaderSupplyCurrent = talon.getSupplyCurrent();
     leaderTorqueCurrent = talon.getTorqueCurrent();
     leaderTempCelsius = talon.getDeviceTemp();
-    leaderTempFault = talon.getFault_DeviceTemp();
     followerPosition = followerTalon.getPosition();
     followerVelocity = followerTalon.getVelocity();
     followerAppliedVoltage = followerTalon.getMotorVoltage();
     followerSupplyCurrent = followerTalon.getSupplyCurrent();
     followerTorqueCurrent = followerTalon.getTorqueCurrent();
     followerTempCelsius = followerTalon.getDeviceTemp();
-    followerTempFault = followerTalon.getFault_DeviceTemp();
 
     tryUntilOk(
         5,
@@ -127,9 +122,7 @@ public class WristIOTalonFX implements WristIO {
                 followerTorqueCurrent));
     tryUntilOk(
         5,
-        () ->
-            BaseStatusSignal.setUpdateFrequencyForAll(
-                4, leaderTempCelsius, leaderTempFault, followerTempCelsius, followerTempFault));
+        () -> BaseStatusSignal.setUpdateFrequencyForAll(4, leaderTempCelsius, followerTempCelsius));
     tryUntilOk(5, () -> ParentDevice.optimizeBusUtilizationForAll(talon, followerTalon));
     PhoenixUtil.registerSignals(
         false,
@@ -139,14 +132,12 @@ public class WristIOTalonFX implements WristIO {
         leaderSupplyCurrent,
         leaderTorqueCurrent,
         leaderTempCelsius,
-        leaderTempFault,
         followerPosition,
         followerVelocity,
         followerAppliedVoltage,
         followerSupplyCurrent,
         followerTorqueCurrent,
-        followerTempCelsius,
-        followerTempFault);
+        followerTempCelsius);
   }
 
   @Override
@@ -169,7 +160,6 @@ public class WristIOTalonFX implements WristIO {
     inputs.leaderSupplyCurrentAmps = leaderSupplyCurrent.getValueAsDouble();
     inputs.leaderTorqueCurrentAmps = leaderTorqueCurrent.getValueAsDouble();
     inputs.leaderTempCelsius = leaderTempCelsius.getValueAsDouble();
-    inputs.leaderTempFault = leaderTempFault.getValue();
 
     inputs.followerConnected =
         followerConnectedDebouncer.calculate(
@@ -183,7 +173,6 @@ public class WristIOTalonFX implements WristIO {
     inputs.followerSupplyCurrentAmps = followerSupplyCurrent.getValueAsDouble();
     inputs.followerTorqueCurrentAmps = followerTorqueCurrent.getValueAsDouble();
     inputs.followerTempCelsius = followerTempCelsius.getValueAsDouble();
-    inputs.followerTempFault = followerTempFault.getValue();
   }
 
   @Override

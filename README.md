@@ -45,12 +45,19 @@ Name - intake
 Position - (0,0,0)
 
 
+
+Questions for Jason:
+Do we need the advantageScope Swerve Calibration.json
+
+
+
 Alert Types:
 Error - Critical functions will not work. You should never start a match if able.
 Warning - Non-critical functions have issues. Robot will continue to work, but some functions may be unavailable. You should not start a match with warnings
 Info - Used more for debugging on the practice field. Information about robot condition that may be useful to know, but do not impact robot operation.
 
-
-Questions for Jason:
-Do we use want to use intergrated device temp faults or set custom cutoff?
-Do we use single returns?
+CAN ID Groups:
+1 - 19 / Swerve
+20 - 39 / Devbot
+40 - 59 / Compbot
+60 - 64 / Spare

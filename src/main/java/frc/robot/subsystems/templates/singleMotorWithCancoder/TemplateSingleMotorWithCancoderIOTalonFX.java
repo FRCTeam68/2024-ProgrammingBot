@@ -31,7 +31,6 @@ import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Current;
 import edu.wpi.first.units.measure.Temperature;
 import edu.wpi.first.units.measure.Voltage;
-import frc.robot.Constants.CanBus;
 import frc.robot.util.PhoenixUtil;
 import lombok.Getter;
 
@@ -68,7 +67,6 @@ public class TemplateSingleMotorWithCancoderIOTalonFX implements TemplateSingleM
   private final StatusSignal<Current> supplyCurrent;
   private final StatusSignal<Current> torqueCurrent;
   private final StatusSignal<Temperature> tempCelsius;
-  private final StatusSignal<Boolean> tempFault;
   private final StatusSignal<MagnetHealthValue> magnetHealth;
 
   private final Debouncer talonConnectedDebouncer = new Debouncer(0.5, DebounceType.kFalling);
@@ -82,8 +80,8 @@ public class TemplateSingleMotorWithCancoderIOTalonFX implements TemplateSingleM
   private final NeutralOut neutralOut = new NeutralOut();
 
   public TemplateSingleMotorWithCancoderIOTalonFX() {
-    talon = new TalonFX(0, CanBus.rio.getName());
-    cancoder = new CANcoder(0, CanBus.rio.getName());
+    talon = new TalonFX(0, "rio");
+    cancoder = new CANcoder(0, "rio");
 
     // Configure Motor
     talonConfig.MotorOutput.Inverted = InvertedValue.Clockwise_Positive;
@@ -118,7 +116,6 @@ public class TemplateSingleMotorWithCancoderIOTalonFX implements TemplateSingleM
     supplyCurrent = talon.getSupplyCurrent();
     torqueCurrent = talon.getTorqueCurrent();
     tempCelsius = talon.getDeviceTemp();
-    tempFault = talon.getFault_DeviceTemp();
     magnetHealth = cancoder.getMagnetHealth();
 
     tryUntilOk(
@@ -132,7 +129,7 @@ public class TemplateSingleMotorWithCancoderIOTalonFX implements TemplateSingleM
                 supplyCurrent,
                 torqueCurrent,
                 magnetHealth));
-    tryUntilOk(5, () -> BaseStatusSignal.setUpdateFrequencyForAll(4, tempCelsius, tempFault));
+    tryUntilOk(5, () -> BaseStatusSignal.setUpdateFrequencyForAll(4, tempCelsius));
     tryUntilOk(5, () -> ParentDevice.optimizeBusUtilizationForAll(talon, cancoder));
     PhoenixUtil.registerSignals(
         false,
@@ -142,7 +139,6 @@ public class TemplateSingleMotorWithCancoderIOTalonFX implements TemplateSingleM
         supplyCurrent,
         torqueCurrent,
         tempCelsius,
-        tempFault,
         magnetHealth);
   }
 
@@ -158,7 +154,6 @@ public class TemplateSingleMotorWithCancoderIOTalonFX implements TemplateSingleM
     inputs.supplyCurrentAmps = supplyCurrent.getValueAsDouble();
     inputs.torqueCurrentAmps = torqueCurrent.getValueAsDouble();
     inputs.tempCelsius = tempCelsius.getValueAsDouble();
-    inputs.tempFault = tempFault.getValue();
 
     inputs.cancoderConnected =
         cancoderConnectedDebouncer.calculate(BaseStatusSignal.isAllGood(magnetHealth));

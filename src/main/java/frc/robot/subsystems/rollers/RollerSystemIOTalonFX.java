@@ -27,7 +27,6 @@ import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Current;
 import edu.wpi.first.units.measure.Temperature;
 import edu.wpi.first.units.measure.Voltage;
-import frc.robot.Constants.CanBus;
 import frc.robot.util.PhoenixUtil;
 
 /** Generic roller IO implementation for a roller or series of rollers using a Kraken. */
@@ -46,7 +45,6 @@ public class RollerSystemIOTalonFX implements RollerSystemIO {
   private final StatusSignal<Current> supplyCurrent;
   private final StatusSignal<Current> torqueCurrent;
   private final StatusSignal<Temperature> tempCelsius;
-  private final StatusSignal<Boolean> tempFault;
 
   // Control requests
   private final VoltageOut voltageOut = new VoltageOut(0.0).withEnableFOC(true);
@@ -57,12 +55,12 @@ public class RollerSystemIOTalonFX implements RollerSystemIO {
 
   public RollerSystemIOTalonFX(
       int id,
-      CanBus canbus,
+      String canbus,
       int currentLimitAmps,
       InvertedValue invertedValue,
       NeutralModeValue neutralModeValue,
       double reduction) {
-    talon = new TalonFX(id, canbus.getName());
+    talon = new TalonFX(id, canbus);
 
     // TODO: should we intially set pid to zero. need to do this if they are saved on the device.
     // Configure Motor
@@ -84,24 +82,22 @@ public class RollerSystemIOTalonFX implements RollerSystemIO {
     supplyCurrent = talon.getSupplyCurrent();
     torqueCurrent = talon.getTorqueCurrent();
     tempCelsius = talon.getDeviceTemp();
-    tempFault = talon.getFault_DeviceTemp();
 
     tryUntilOk(
         5,
         () ->
             BaseStatusSignal.setUpdateFrequencyForAll(
                 50.0, position, velocity, appliedVoltage, supplyCurrent, torqueCurrent));
-    tryUntilOk(5, () -> BaseStatusSignal.setUpdateFrequencyForAll(4, tempCelsius, tempFault));
+    tryUntilOk(5, () -> BaseStatusSignal.setUpdateFrequencyForAll(4, tempCelsius));
     tryUntilOk(5, () -> ParentDevice.optimizeBusUtilizationForAll(talon));
     PhoenixUtil.registerSignals(
-        (canbus.getName() == "rio") ? false : true,
+        (canbus == "rio") ? false : true,
         position,
         velocity,
         appliedVoltage,
         supplyCurrent,
         torqueCurrent,
-        tempCelsius,
-        tempFault);
+        tempCelsius);
   }
 
   @Override
@@ -116,7 +112,6 @@ public class RollerSystemIOTalonFX implements RollerSystemIO {
     inputs.supplyCurrentAmps = supplyCurrent.getValueAsDouble();
     inputs.torqueCurrentAmps = torqueCurrent.getValueAsDouble();
     inputs.tempCelsius = tempCelsius.getValueAsDouble();
-    inputs.tempFault = tempFault.getValue();
   }
 
   @Override

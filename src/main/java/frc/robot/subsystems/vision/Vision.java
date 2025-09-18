@@ -248,6 +248,19 @@ public class Vision extends SubsystemBase {
     Logger.recordOutput(
         "Vision/Summary/RobotPosesRejected",
         allRobotPosesRejected.toArray(new Pose3d[allRobotPosesRejected.size()]));
+
+    /*
+
+    if ()
+
+
+
+
+    Logger.recordOutput(
+        "Vision/Object/ObjectPoses", all object poses);
+    Logger.recordOutput(
+        "Vision/Object/TargetObjectPose", target object pose);
+        */
   }
 
   @FunctionalInterface

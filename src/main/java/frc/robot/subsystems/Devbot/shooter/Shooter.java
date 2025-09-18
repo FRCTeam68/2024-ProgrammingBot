@@ -1,4 +1,4 @@
-package frc.robot.subsystems.shooter;
+package frc.robot.subsystems.Devbot.shooter;
 
 import com.ctre.phoenix6.configs.MotionMagicConfigs;
 import com.ctre.phoenix6.configs.SlotConfigs;
@@ -9,7 +9,6 @@ import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
-import frc.robot.Constants.CanBus;
 import frc.robot.subsystems.rollers.RollerSystemIO;
 import frc.robot.subsystems.rollers.RollerSystemIOInputsAutoLogged;
 import frc.robot.subsystems.rollers.RollerSystemIOSim;
@@ -71,7 +70,7 @@ public class Shooter extends SubsystemBase {
         upperIO =
             new RollerSystemIOTalonFX(
                 21,
-                CanBus.rio,
+                "rio",
                 currentLimitAmps,
                 InvertedValue.Clockwise_Positive,
                 NeutralModeValue.Coast,
@@ -79,7 +78,7 @@ public class Shooter extends SubsystemBase {
         lowerIO =
             new RollerSystemIOTalonFX(
                 20,
-                CanBus.rio,
+                "rio",
                 currentLimitAmps,
                 InvertedValue.CounterClockwise_Positive,
                 NeutralModeValue.Coast,
@@ -108,8 +107,8 @@ public class Shooter extends SubsystemBase {
     Logger.processInputs("Shooter/Lower", lowerInputs);
     upperDisconnectedAlert.set(!upperInputs.connected);
     lowerDisconnectedAlert.set(!lowerInputs.connected);
-    upperTempAlert.set(upperInputs.tempFault);
-    lowerTempAlert.set(lowerInputs.tempFault);
+    upperTempAlert.set(upperInputs.tempCelsius > Constants.warningTemp);
+    lowerTempAlert.set(lowerInputs.tempCelsius > Constants.warningTemp);
 
     Logger.recordOutput(
         "Shooter/Upper/SetpointVolts", (controlMode == ControlMode.Voltage) ? upperSetpoint : 0);

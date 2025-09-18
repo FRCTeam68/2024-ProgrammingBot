@@ -1,5 +1,6 @@
 package frc.robot.subsystems.drive;
 
+import com.ctre.phoenix6.configs.Slot0Configs;
 import edu.wpi.first.math.filter.Debouncer;
 import edu.wpi.first.math.filter.Debouncer.DebounceType;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -8,6 +9,7 @@ import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
+import frc.robot.Constants;
 import frc.robot.util.LoggedTunableNumber;
 import org.littletonrobotics.junction.Logger;
 
@@ -24,6 +26,38 @@ public class Module {
       new LoggedTunableNumber("Drive/Module/DrivekD");
   private static final LoggedTunableNumber turnkP = new LoggedTunableNumber("Drive/Module/TurnkP");
   private static final LoggedTunableNumber turnkD = new LoggedTunableNumber("Drive/Module/TurnkD");
+
+  static {
+    switch (Constants.getRobot()) {
+      case COMPBOT -> {
+        drivekS.initDefault(0);
+        drivekV.initDefault(0);
+        drivekT.initDefault(0);
+        drivekP.initDefault(5);
+        drivekD.initDefault(0);
+        turnkP.initDefault(0);
+        turnkD.initDefault(0);
+      }
+      case DEVBOT -> {
+        drivekS.initDefault(0);
+        drivekV.initDefault(0);
+        drivekT.initDefault(0);
+        drivekP.initDefault(5);
+        drivekD.initDefault(0);
+        turnkP.initDefault(0);
+        turnkD.initDefault(0);
+      }
+      default -> {
+        drivekS.initDefault(0);
+        drivekV.initDefault(0);
+        drivekT.initDefault(0);
+        drivekP.initDefault(100);
+        drivekD.initDefault(0.5);
+        turnkP.initDefault(5);
+        turnkD.initDefault(0);
+      }
+    }
+  }
 
   private final ModuleIO io;
   private final ModuleIOInputsAutoLogged inputs = new ModuleIOInputsAutoLogged();
@@ -48,29 +82,40 @@ public class Module {
     this.index = index;
     driveDisconnectedAlert =
         new Alert(
-            "Disconnected drive motor on module " + Integer.toString(index) + ".",
+            "Disconnected drive motor on " + DriveConstants.moduleNames[index] + ".",
             AlertType.kError);
     turnDisconnectedAlert =
         new Alert(
-            "Disconnected turn motor on module " + Integer.toString(index) + ".", AlertType.kError);
+            "Disconnected turn motor on " + DriveConstants.moduleNames[index] + ".",
+            AlertType.kError);
     turnEncoderDisconnectedAlert =
         new Alert(
-            "Disconnected turn encoder on module " + Integer.toString(index) + ".",
+            "Disconnected turn encoder on " + DriveConstants.moduleNames[index] + ".",
             AlertType.kError);
     driveTempAlert =
         new Alert(
-            "Drive motor too hot on module " + Integer.toString(index) + ".", AlertType.kWarning);
+            "Drive motor too hot on " + DriveConstants.moduleNames[index] + ".",
+            AlertType.kWarning);
     turnTempAlert =
         new Alert(
-            "Turn motor too hot on module " + Integer.toString(index) + ".", AlertType.kWarning);
+            "Turn motor too hot on " + DriveConstants.moduleNames[index] + ".", AlertType.kWarning);
   }
 
   public void updateInputs() {
     io.updateInputs(inputs);
-    Logger.processInputs("Drive/Module" + Integer.toString(index), inputs);
+    Logger.processInputs(
+        "Drive/" + DriveConstants.moduleNames[index].replace(" ", "").replaceFirst("m", "M"),
+        inputs);
   }
 
   public void periodic() {
+    if (drivekP.hasChanged(hashCode()) || drivekD.hasChanged(hashCode())) {
+      io.setDrivePID(
+          new Slot0Configs().withKP(drivekP.getAsDouble()).withKD(drivekD.getAsDouble()));
+    }
+    if (turnkP.hasChanged(hashCode()) || turnkD.hasChanged(hashCode())) {
+      io.setTurnPID(new Slot0Configs().withKP(turnkP.getAsDouble()).withKD(turnkD.getAsDouble()));
+    }
 
     // Calculate positions for odometry
     int sampleCount = inputs.odometryTimestamps.length; // All signals are sampled together
@@ -82,14 +127,19 @@ public class Module {
     }
 
     // Update alerts
-    driveDisconnectedAlert.set(!inputs.driveConnected);
-    turnDisconnectedAlert.set(!inputs.turnConnected);
-    turnEncoderDisconnectedAlert.set(!inputs.turnEncoderConnected);
+    driveDisconnectedAlert.set(!driveMotorConnectedDebouncer.calculate(inputs.driveConnected));
+    turnDisconnectedAlert.set(!turnMotorConnectedDebouncer.calculate(inputs.turnConnected));
+    turnEncoderDisconnectedAlert.set(
+        !turnEncoderConnectedDebouncer.calculate(inputs.turnEncoderConnected));
+    driveTempAlert.set(inputs.driveTempCelsius > Constants.warningTemp);
+    turnTempAlert.set(inputs.turnTempCelsius > Constants.warningTemp);
   }
 
   /** Runs the module with the specified setpoint state. Mutates the state to optimize it. */
   public void runSetpoint(SwerveModuleState state) {
     // Optimize velocity setpoint
+    // TODO: these pull the same angle, why are they different. This is in the template, but makes
+    // no sense
     state.optimize(getAngle());
     state.cosineScale(inputs.turnPosition);
 

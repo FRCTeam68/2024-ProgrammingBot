@@ -26,6 +26,7 @@ public final class Constants {
   private static RobotType robotType = RobotType.SIMBOT;
   public static final Boolean tuningMode = true;
   public static final Double loopPeriodSecs = 0.02;
+  public static final Double warningTemp = 60.0;
 
   @SuppressWarnings("resource")
   public static RobotType getRobot() {
@@ -59,24 +60,6 @@ public final class Constants {
     SIMBOT,
     DEVBOT,
     COMPBOT
-  }
-
-  public static enum CanBus {
-    /** Rio integrated CAN bus */
-    rio("rio"),
-
-    /** CANivore CAN bus */
-    canivore("Drivebus");
-
-    private final String name;
-
-    CanBus(String name) {
-      this.name = name;
-    }
-
-    public String getName() {
-      return name;
-    }
   }
 
   // TODO: MA uses these. investigate

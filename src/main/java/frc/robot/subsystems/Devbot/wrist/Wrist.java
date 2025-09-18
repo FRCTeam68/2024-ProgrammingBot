@@ -1,4 +1,4 @@
-package frc.robot.subsystems.wrist;
+package frc.robot.subsystems.Devbot.wrist;
 
 import com.ctre.phoenix6.configs.MotionMagicConfigs;
 import com.ctre.phoenix6.configs.SlotConfigs;
@@ -16,6 +16,8 @@ import frc.robot.util.LoggedTunableNumber;
 import frc.robot.util.PhoenixUtil.ControlMode;
 import lombok.Getter;
 import org.littletonrobotics.junction.Logger;
+import org.littletonrobotics.junction.networktables.LoggedNetworkBoolean;
+import org.littletonrobotics.junction.networktables.LoggedNetworkInput;
 import org.littletonrobotics.junction.networktables.LoggedNetworkNumber;
 
 public class Wrist extends SubsystemBase {
@@ -47,7 +49,7 @@ public class Wrist extends SubsystemBase {
   @Getter private ControlMode mode = ControlMode.Neutral;
 
   private LoggedNetworkNumber testSetpoint =
-      new LoggedNetworkNumber("SmartDashboard/Wrist/RunToPosition/TestSetpoint", 0);
+      new LoggedNetworkNumber("Testing/Wrist/RunToPosition/TestSetpoint", 0);
 
   public Wrist(WristIO io) {
     this.io = io;
@@ -57,6 +59,7 @@ public class Wrist extends SubsystemBase {
     zero();
 
     // Dashboard tuning commands
+
     SmartDashboard.putData("Wrist/Zero", Commands.runOnce(() -> zero()));
     SmartDashboard.putData(
         "Wrist/RunToPosition/RunToTestSetpoint",
@@ -69,8 +72,8 @@ public class Wrist extends SubsystemBase {
     leaderDisconnectedAlert.set(!inputs.leaderConnected);
     followerDisconnectedAlert.set(!inputs.followerConnected);
     motorsOutOfSync.set(inputs.elevationOffsetDeg > 2);
-    leaderTempAlert.set(inputs.leaderTempFault);
-    followerTempAlert.set(inputs.followerTempFault);
+    leaderTempAlert.set(inputs.leaderTempCelsius > Constants.warningTemp);
+    followerTempAlert.set(inputs.followerTempCelsius > Constants.warningTemp);
     Logger.recordOutput("Wrist/AtPosition", atPosition());
 
     Logger.recordOutput("Wrist/SetpointVolts", (mode == ControlMode.Voltage) ? setpoint : 0);

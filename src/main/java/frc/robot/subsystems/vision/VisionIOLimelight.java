@@ -26,6 +26,7 @@ public class VisionIOLimelight implements VisionIO {
   private final DoubleSubscriber tySubscriber;
   private final DoubleArraySubscriber megatag1Subscriber;
   private final DoubleArraySubscriber megatag2Subscriber;
+  private final DoubleArraySubscriber objectSubscriber;
 
   /**
    * Creates a new VisionIOLimelight.
@@ -44,6 +45,7 @@ public class VisionIOLimelight implements VisionIO {
     megatag1Subscriber = table.getDoubleArrayTopic("botpose_wpiblue").subscribe(new double[] {});
     megatag2Subscriber =
         table.getDoubleArrayTopic("botpose_orb_wpiblue").subscribe(new double[] {});
+    objectSubscriber = table.getDoubleArrayTopic("targets_Detector").subscribe(new double[] {});
   }
 
   @Override
@@ -132,6 +134,34 @@ public class VisionIOLimelight implements VisionIO {
     int i = 0;
     for (int id : tagIds) {
       inputs.tagIds[i++] = id;
+    }
+
+    // Read new object observations from NetworkTables
+    List<ObjectObservation> objectObservations = new LinkedList<>();
+
+    for (var rawSample : objectSubscriber.readQueue()) {
+      if (rawSample.value.length == 0) continue;
+
+      // for (int i = 0; i < number of objects detected; i += number to next object) {
+      // objectObservations.add(
+      //   new ObjectObservation(
+      //     // Center X
+      //     1,
+
+      //     // Center y
+      //     1,
+
+      //     // Width
+      //     1,
+
+      //     // Height
+      //     1,
+
+      //     // Confidence of observation
+      //     1
+      // ));
+
+      // }
     }
   }
 

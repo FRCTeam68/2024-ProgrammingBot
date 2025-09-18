@@ -13,6 +13,7 @@ public interface VisionIO {
         new TargetObservation(new Rotation2d(), new Rotation2d());
     public PoseObservation[] poseObservations = new PoseObservation[0];
     public int[] tagIds = new int[0];
+    public ObjectObservation[] objectObservations = new ObjectObservation[0];
   }
 
   /** Represents the angle to a simple target, not used for pose estimation. */
@@ -32,6 +33,9 @@ public interface VisionIO {
     MEGATAG_2,
     PHOTONVISION
   }
+
+  public static record ObjectObservation(
+      double txCenter, double tyCenter, double width, double height, double confidence) {}
 
   public default void updateInputs(VisionIOInputs inputs) {}
 }

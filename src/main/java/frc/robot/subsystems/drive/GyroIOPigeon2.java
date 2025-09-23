@@ -18,10 +18,10 @@ public class GyroIOPigeon2 implements GyroIO {
   private final Pigeon2 pigeon =
       new Pigeon2(DriveConstants.PigeonConstants.id, DriveConstants.canbus);
   private final StatusSignal<Angle> yaw = pigeon.getYaw();
-  private final StatusSignal<Angle> pitch = pigeon.getPitch();
-  private final StatusSignal<Angle> roll = pigeon.getRoll();
   private final Queue<Double> yawPositionQueue;
   private final Queue<Double> yawTimestampQueue;
+  private final StatusSignal<Angle> pitch = pigeon.getPitch();
+  private final StatusSignal<Angle> roll = pigeon.getRoll();
   private final StatusSignal<AngularVelocity> yawVelocity = pigeon.getAngularVelocityZWorld();
   private final StatusSignal<AngularVelocity> pitchVelocity = pigeon.getAngularVelocityXWorld();
   private final StatusSignal<AngularVelocity> rollVelocity = pigeon.getAngularVelocityYWorld();

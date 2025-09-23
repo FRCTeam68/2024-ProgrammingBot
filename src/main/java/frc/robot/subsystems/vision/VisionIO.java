@@ -7,6 +7,7 @@ import org.littletonrobotics.junction.AutoLog;
 public interface VisionIO {
   @AutoLog
   public static class VisionIOInputs {
+    public CameraType cameraType = null;
     public String name = "";
     public boolean connected = false;
     public TargetObservation latestTargetObservation =
@@ -14,6 +15,12 @@ public interface VisionIO {
     public PoseObservation[] poseObservations = new PoseObservation[0];
     public int[] tagIds = new int[0];
     public ObjectObservation[] objectObservations = new ObjectObservation[0];
+  }
+
+  public static enum CameraType {
+    LL_2,
+    LL_3G,
+    LL_4
   }
 
   /** Represents the angle to a simple target, not used for pose estimation. */

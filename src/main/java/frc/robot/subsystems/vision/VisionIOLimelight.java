@@ -17,6 +17,7 @@ import java.util.function.Supplier;
 
 /** IO implementation for real Limelight hardware. */
 public class VisionIOLimelight implements VisionIO {
+  private final CameraType cameraType;
   private final String name;
   private final Supplier<Rotation2d> rotationSupplier;
   private final DoubleArrayPublisher orientationPublisher;
@@ -34,7 +35,9 @@ public class VisionIOLimelight implements VisionIO {
    * @param name The configured name of the Limelight.
    * @param rotationSupplier Supplier for the current estimated rotation, used for MegaTag 2.
    */
-  public VisionIOLimelight(String name, Supplier<Rotation2d> rotationSupplier) {
+  public VisionIOLimelight(
+      CameraType cameraType, String name, Supplier<Rotation2d> rotationSupplier) {
+    this.cameraType = cameraType;
     this.name = name;
     var table = NetworkTableInstance.getDefault().getTable(name);
     this.rotationSupplier = rotationSupplier;
@@ -50,6 +53,7 @@ public class VisionIOLimelight implements VisionIO {
 
   @Override
   public void updateInputs(VisionIOInputs inputs) {
+    inputs.cameraType = cameraType;
     inputs.name = name;
     // Update connection status based on whether an update has been seen in the last 250ms
     inputs.connected =

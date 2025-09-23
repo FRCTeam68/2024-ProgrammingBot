@@ -1,32 +1,33 @@
 package frc.robot.subsystems.vision;
 
-// High standard deviations result in less truested data
+import edu.wpi.first.math.util.Units;
+
 public class VisionConstants {
   // Camera names, must match names configured on coprocessor
-  public static String camera0Name = "limelight-donotuse"; // back,  LL2
-  public static String camera1Name = "limelight-reef"; // front, LL3G
+  public static String LL2Name = "limelight-donotuse";
+  public static String LL3GName = "limelight-reef";
+  public static String LL4Name = "limelight-4";
 
-  public static double translationInitializedError = 0.2; // Meters
-  public static double rotationInitializedError = 2.5; // Degrees
+  // Pose filtering thresholds
+  public static double MT1MinTags = 2;
+  public static double MT1MaxLinearVelocity = 0.5; // Meters per second
+  public static double MT1MaxAngularVelocity = Units.degreesToRadians(5); // Radians per second
+  public static double maxZError = 0.5; // Meters
 
-  // Basic filtering thresholds
-  public static double maxZError = 0.75; // Meters
-  public static double maxRotVelocity = 250; // Degrees per second
+  // Higher standard deviations result in less truested data
 
   // Standard deviation baselines, for 1 meter distance and 1 tag
   // (Adjusted automatically based on distance and # of tags)
   public static double linearStdDevBaseline = 0.02; // Meters
   public static double angularStdDevBaseline = 0.06; // Radians
 
-  // Standard deviation multipliers for each camera
+  // Standard deviation multipliers for each camera type
   // (Adjust to trust some cameras more than others)
-  public static double[] cameraStdDevFactors =
-      new double[] {
-        0.5, // Camera 0  LL2
-        1.0 // Camera 1   LL3G
-      };
+  public static double LL2StdDevFactor = 1.0;
+  public static double LL3GStdDevFactor = 1.0;
+  public static double LL4StdDevFactor = 1.0;
 
-  // Multipliers to apply for MegaTag 2 observations
+  // Multipliers to apply for MegaTag 1 observations
   public static double linearStdDevMegatag1Factor =
       Double.POSITIVE_INFINITY; // Do not use linear data
   public static double angularStdDevMegatag1Factor = 1.0;

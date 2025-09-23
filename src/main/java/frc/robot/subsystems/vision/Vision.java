@@ -4,19 +4,19 @@ import static frc.robot.subsystems.vision.VisionConstants.*;
 
 import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.VecBuilder;
+import edu.wpi.first.math.filter.Debouncer;
+import edu.wpi.first.math.filter.Debouncer.DebounceType;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
-import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
 import frc.robot.Constants.Mode;
-import frc.robot.Constants.RobotType;
 import frc.robot.FieldConstants;
 import frc.robot.FieldConstants.AprilTagLayoutType;
 import frc.robot.subsystems.vision.VisionIO.PoseObservationType;
@@ -31,11 +31,8 @@ public class Vision extends SubsystemBase {
   private final Supplier<ChassisSpeeds> chassisSpeedSupplier;
   private final VisionIO[] io;
   private final VisionIOInputsAutoLogged[] inputs;
-  private final Alert[] disconnectedAlert;
-  private final Alert poseNotInitializedAlert =
-      new Alert(
-          "Robot pose not initialized. Face robot toward 2 april tags. If all cameras are disconnected, press the back button with reef camera facing away from driver station. (This can be done while disabled)",
-          AlertType.kError);
+  private final Debouncer[] connectedDebouncers;
+  private final Alert[] disconnectedAlerts;
 
   public Vision(
       VisionConsumer consumer,
@@ -49,15 +46,15 @@ public class Vision extends SubsystemBase {
 
     // Initialize inputs
     // and disconnected alerts
-    this.inputs = new VisionIOInputsAutoLogged[io.length];
-    this.disconnectedAlert = new Alert[io.length];
+    inputs = new VisionIOInputsAutoLogged[io.length];
+    connectedDebouncers = new Debouncer[io.length];
+    disconnectedAlerts = new Alert[io.length];
     for (int i = 0; i < inputs.length; i++) {
       inputs[i] = new VisionIOInputsAutoLogged();
-      disconnectedAlert[i] = new Alert(inputs[i].name + " is disconnected.", AlertType.kWarning);
+      connectedDebouncers[i] = new Debouncer(0.5, DebounceType.kFalling);
+      // TODO: does this actually get the proper name. It is before update inputs is called
+      disconnectedAlerts[i] = new Alert(inputs[i].name + " is disconnected.", AlertType.kWarning);
     }
-
-    // Set rotation not initialized alert
-    poseNotInitializedAlert.set(Constants.getRobot() == RobotType.SIMBOT ? false : true);
   }
 
   /**
@@ -103,8 +100,9 @@ public class Vision extends SubsystemBase {
     // Loop over cameras
     for (int cameraIndex = 0; cameraIndex < io.length; cameraIndex++) {
       // Update disconnected alert
-      disconnectedAlert[cameraIndex].set(
-          !inputs[cameraIndex].connected && Constants.getMode() != Mode.SIM);
+      disconnectedAlerts[cameraIndex].set(
+          !connectedDebouncers[cameraIndex].calculate(inputs[cameraIndex].connected)
+              && Constants.getMode() != Mode.SIM);
 
       // Initialize logging values
       List<Pose3d> tagPoses = new LinkedList<>();
@@ -125,20 +123,23 @@ public class Vision extends SubsystemBase {
 
       // Loop over pose observations
       for (var observation : inputs[cameraIndex].poseObservations) {
-        // Reject pose and do not log pose if 0 tags are seen
+        // Reject and do not log pose if 0 tags are seen
         if (observation.tagCount() == 0) {
           continue;
         }
-        // Check whether to reject pose
-        boolean rejectPose =
-            (observation.type() == PoseObservationType.MEGATAG_1
-                    && observation.tagCount() == 1) // MegaTag1 poses must see 2 tags
-                || Math.abs(observation.pose().getZ())
-                    > maxZError // Must have realistic Z coordinate
-                || Math.abs(
-                        Units.radiansToDegrees(chassisSpeedSupplier.get().omegaRadiansPerSecond))
-                    > maxRotVelocity // Must not be rotating too fast
 
+        // Check whether to reject pose
+        boolean rejectMT1Pose =
+            observation.type() == PoseObservationType.MEGATAG_1
+                && (observation.tagCount() < MT1MinTags
+                    || chassisSpeedSupplier.get().vxMetersPerSecond > MT1MaxLinearVelocity
+                    || chassisSpeedSupplier.get().vyMetersPerSecond > MT1MaxLinearVelocity
+                    || chassisSpeedSupplier.get().omegaRadiansPerSecond > MT1MaxAngularVelocity);
+
+        boolean rejectPose =
+            rejectMT1Pose
+                // Must have realistic Z coordinate
+                || Math.abs(observation.pose().getZ()) > maxZError
                 // Must be within the field boundaries
                 || observation.pose().getX() < 0.0
                 || observation.pose().getX() > FieldConstants.fieldLength
@@ -179,9 +180,19 @@ public class Vision extends SubsystemBase {
           linearStdDev *= linearStdDevMegatag2Factor;
           angularStdDev *= angularStdDevMegatag2Factor;
         }
-        if (cameraIndex < cameraStdDevFactors.length) {
-          linearStdDev *= cameraStdDevFactors[cameraIndex];
-          angularStdDev *= cameraStdDevFactors[cameraIndex];
+        switch (inputs[cameraIndex].cameraType) {
+          case LL_2:
+            linearStdDev *= LL2StdDevFactor;
+            angularStdDev *= LL2StdDevFactor;
+            break;
+          case LL_3G:
+            linearStdDev *= LL3GStdDevFactor;
+            angularStdDev *= LL3GStdDevFactor;
+            break;
+          case LL_4:
+            linearStdDev *= LL4StdDevFactor;
+            angularStdDev *= LL4StdDevFactor;
+            break;
         }
 
         // Send vision observation
@@ -189,21 +200,6 @@ public class Vision extends SubsystemBase {
             observation.pose().toPose2d(),
             observation.timestamp(),
             VecBuilder.fill(linearStdDev, linearStdDev, angularStdDev));
-
-        // Pose not initialized alert
-        if (poseNotInitializedAlert.get()) {
-          poseNotInitializedAlert.set(
-              poseSupplier
-                          .get()
-                          .getTranslation()
-                          .minus(observation.pose().getTranslation().toTranslation2d())
-                          .getNorm()
-                      < translationInitializedError
-                  && Math.abs(
-                          poseSupplier.get().getRotation().getRadians()
-                              - observation.pose().getRotation().getAngle())
-                      < rotationInitializedError);
-        }
       }
 
       // Log camera datadata
@@ -248,19 +244,6 @@ public class Vision extends SubsystemBase {
     Logger.recordOutput(
         "Vision/Summary/RobotPosesRejected",
         allRobotPosesRejected.toArray(new Pose3d[allRobotPosesRejected.size()]));
-
-    /*
-
-    if ()
-
-
-
-
-    Logger.recordOutput(
-        "Vision/Object/ObjectPoses", all object poses);
-    Logger.recordOutput(
-        "Vision/Object/TargetObjectPose", target object pose);
-        */
   }
 
   @FunctionalInterface

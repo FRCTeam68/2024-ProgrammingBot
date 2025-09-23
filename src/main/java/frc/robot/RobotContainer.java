@@ -36,6 +36,7 @@ import frc.robot.subsystems.rollers.RollerSystemIOTalonFX;
 import frc.robot.subsystems.vision.Vision;
 import frc.robot.subsystems.vision.VisionConstants;
 import frc.robot.subsystems.vision.VisionIO;
+import frc.robot.subsystems.vision.VisionIO.CameraType;
 import frc.robot.subsystems.vision.VisionIOLimelight;
 import frc.robot.util.AllianceFlipUtil;
 import org.littletonrobotics.junction.networktables.LoggedDashboardChooser;
@@ -91,8 +92,10 @@ public class RobotContainer {
                   drive::addVisionMeasurement,
                   drive::getPose,
                   drive::getFieldVelocity,
-                  new VisionIOLimelight(VisionConstants.camera0Name, drive::getRotation),
-                  new VisionIOLimelight(VisionConstants.camera1Name, drive::getRotation));
+                  new VisionIOLimelight(
+                      CameraType.LL_2, VisionConstants.LL2Name, drive::getRotation),
+                  new VisionIOLimelight(
+                      CameraType.LL_3G, VisionConstants.LL3GName, drive::getRotation));
         }
 
         case DEVBOT -> {
@@ -109,7 +112,8 @@ public class RobotContainer {
                   drive::addVisionMeasurement,
                   drive::getPose,
                   drive::getFieldVelocity,
-                  new VisionIOLimelight("Intake", drive::getRotation));
+                  new VisionIOLimelight(
+                      CameraType.LL_2, VisionConstants.LL2Name, drive::getRotation));
 
           wrist = new Wrist(new WristIOTalonFX());
 

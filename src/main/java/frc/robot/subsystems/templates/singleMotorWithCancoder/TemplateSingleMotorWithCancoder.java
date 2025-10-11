@@ -69,7 +69,7 @@ public class TemplateSingleMotorWithCancoder extends SubsystemBase {
     io.updateInputs(inputs);
     Logger.processInputs("Shooter" + name, inputs);
     disconnectedAlert.set(!inputs.talonConnected);
-    tempAlert.set(inputs.tempCelsius > Constants.warningTemp);
+    tempAlert.set(inputs.tempCelsius > Constants.warningTempCelsius);
     Logger.recordOutput("Shooter" + name + "/AtSetpoint", atSetpoint());
 
     if (controlMode != prevControlMode || setpoint != prevSetpoint) {
@@ -79,7 +79,8 @@ public class TemplateSingleMotorWithCancoder extends SubsystemBase {
       Logger.recordOutput(
           "Shooter" + name + "/setpointVolts", (controlMode == ControlMode.Voltage) ? setpoint : 0);
       Logger.recordOutput(
-          "Shooter" + name + "/setpointSpeed", (controlMode == ControlMode.Speed) ? setpoint : 0);
+          "Shooter" + name + "/setpointSpeed",
+          (controlMode == ControlMode.Velocity) ? setpoint : 0);
     }
 
     // Update tunable numbers
@@ -121,7 +122,7 @@ public class TemplateSingleMotorWithCancoder extends SubsystemBase {
    */
   public void setSpeed(double speed) {
     setpoint = speed;
-    controlMode = ControlMode.Speed;
+    controlMode = ControlMode.Velocity;
     io.setSpeed(speed, 0);
   }
 
@@ -154,7 +155,7 @@ public class TemplateSingleMotorWithCancoder extends SubsystemBase {
    */
   public boolean atSetpoint() {
     switch (controlMode) {
-      case Speed:
+      case Velocity:
         return Math.abs(setpoint - inputs.velocityRotsPerSec) < setpointBandSpeed.getAsDouble();
       default:
         return false;

@@ -132,6 +132,7 @@ public class Vision extends SubsystemBase {
         boolean rejectMT1Pose =
             observation.type() == PoseObservationType.MEGATAG_1
                 && (observation.tagCount() < MT1MinTags
+                    || observation.averageTagDistance() > MT1MaxAverageTagDistance
                     || chassisSpeedSupplier.get().vxMetersPerSecond > MT1MaxLinearVelocity
                     || chassisSpeedSupplier.get().vyMetersPerSecond > MT1MaxLinearVelocity
                     || chassisSpeedSupplier.get().omegaRadiansPerSecond > MT1MaxAngularVelocity);
@@ -231,6 +232,9 @@ public class Vision extends SubsystemBase {
       allRobotPosesRejected.addAll(robotPosesRejectedMT1);
       allRobotPosesAccepted.addAll(robotPosesAcceptedMT2);
       allRobotPosesRejected.addAll(robotPosesRejectedMT2);
+
+      // Loop over object observations
+      for (var observation : inputs[cameraIndex].objectObservations) {}
     }
 
     // Log summary data

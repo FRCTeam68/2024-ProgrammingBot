@@ -10,9 +10,9 @@ import com.ctre.phoenix6.configs.Slot1Configs;
 import com.ctre.phoenix6.configs.Slot2Configs;
 import com.ctre.phoenix6.configs.SlotConfigs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
-import com.ctre.phoenix6.controls.MotionMagicTorqueCurrentFOC;
-import com.ctre.phoenix6.controls.MotionMagicVelocityTorqueCurrentFOC;
 import com.ctre.phoenix6.controls.NeutralOut;
+import com.ctre.phoenix6.controls.PositionVoltage;
+import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.hardware.ParentDevice;
 import com.ctre.phoenix6.hardware.TalonFX;
@@ -20,8 +20,6 @@ import com.ctre.phoenix6.signals.GravityTypeValue;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 import com.ctre.phoenix6.signals.StaticFeedforwardSignValue;
-import edu.wpi.first.math.filter.Debouncer;
-import edu.wpi.first.math.filter.Debouncer.DebounceType;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Current;
@@ -36,7 +34,6 @@ public class RollerSystemIOTalonFX implements RollerSystemIO {
 
   // Configuration
   private final TalonFXConfiguration config = new TalonFXConfiguration();
-  private final Debouncer connectedDebouncer = new Debouncer(0.5, DebounceType.kFalling);
 
   // Status Signals
   private final StatusSignal<Angle> position;
@@ -48,9 +45,8 @@ public class RollerSystemIOTalonFX implements RollerSystemIO {
 
   // Control requests
   private final VoltageOut voltageOut = new VoltageOut(0.0).withEnableFOC(true);
-  private final MotionMagicVelocityTorqueCurrentFOC velocityOut =
-      new MotionMagicVelocityTorqueCurrentFOC(0);
-  private final MotionMagicTorqueCurrentFOC positionOut = new MotionMagicTorqueCurrentFOC(0);
+  private final VelocityVoltage velocityOut = new VelocityVoltage(0).withEnableFOC(true);
+  private final PositionVoltage positionOut = new PositionVoltage(0).withEnableFOC(true);
   private final NeutralOut neutralOut = new NeutralOut();
 
   public RollerSystemIOTalonFX(
@@ -103,10 +99,9 @@ public class RollerSystemIOTalonFX implements RollerSystemIO {
   @Override
   public void updateInputs(RollerSystemIOInputs inputs) {
     inputs.connected =
-        connectedDebouncer.calculate(
-            BaseStatusSignal.isAllGood(
-                position, velocity, appliedVoltage, supplyCurrent, torqueCurrent));
-    inputs.positionRotations = position.getValueAsDouble();
+        BaseStatusSignal.isAllGood(
+            position, velocity, appliedVoltage, supplyCurrent, torqueCurrent);
+    inputs.positionRots = position.getValueAsDouble();
     inputs.velocityRotsPerSec = velocity.getValueAsDouble();
     inputs.appliedVoltage = appliedVoltage.getValueAsDouble();
     inputs.supplyCurrentAmps = supplyCurrent.getValueAsDouble();
@@ -120,8 +115,8 @@ public class RollerSystemIOTalonFX implements RollerSystemIO {
   }
 
   @Override
-  public void setSpeed(double speed, int slot) {
-    talon.setControl(velocityOut.withVelocity(speed).withSlot(slot));
+  public void setVelocity(double velocity, int slot) {
+    talon.setControl(velocityOut.withVelocity(velocity).withSlot(slot));
   }
 
   @Override

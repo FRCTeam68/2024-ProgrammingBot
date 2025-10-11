@@ -24,6 +24,7 @@ public interface VisionIO {
   }
 
   /** Represents the angle to a simple target, not used for pose estimation. */
+  // TODO: are we every going to use this. we would just use poses instead
   public static record TargetObservation(Rotation2d tx, Rotation2d ty) {}
 
   /** Represents a robot pose sample used for pose estimation. */
@@ -41,8 +42,15 @@ public interface VisionIO {
     PHOTONVISION
   }
 
+  /** Represents an object sample. */
   public static record ObjectObservation(
       double txCenter, double tyCenter, double width, double height, double confidence) {}
+
+  public static enum ObjectObservationType {
+    Coral,
+    Algae,
+    Other
+  }
 
   public default void updateInputs(VisionIOInputs inputs) {}
 }

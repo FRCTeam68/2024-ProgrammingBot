@@ -4,14 +4,15 @@ import edu.wpi.first.math.util.Units;
 
 public class VisionConstants {
   // Camera names, must match names configured on coprocessor
-  public static String LL2Name = "limelight-donotuse";
-  public static String LL3GName = "limelight-reef";
-  public static String LL4Name = "limelight-4";
+  public static String LL2Name = "limelight-two";
+  public static String LL3GName = "limelight-threeg";
+  public static String LL4Name = "limelight-four";
 
   // Pose filtering thresholds
   public static double MT1MinTags = 2;
   public static double MT1MaxLinearVelocity = 0.5; // Meters per second
   public static double MT1MaxAngularVelocity = Units.degreesToRadians(5); // Radians per second
+  public static double MT1MaxAverageTagDistance = 2.0; // Meters
   public static double maxZError = 0.5; // Meters
 
   // Higher standard deviations result in less truested data
@@ -21,8 +22,7 @@ public class VisionConstants {
   public static double linearStdDevBaseline = 0.02; // Meters
   public static double angularStdDevBaseline = 0.06; // Radians
 
-  // Standard deviation multipliers for each camera type
-  // (Adjust to trust some cameras more than others)
+  // Multipliers to apply for each camera type
   public static double LL2StdDevFactor = 1.0;
   public static double LL3GStdDevFactor = 1.0;
   public static double LL4StdDevFactor = 1.0;

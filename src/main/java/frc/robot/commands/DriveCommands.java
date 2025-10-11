@@ -19,6 +19,7 @@ import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
+import frc.robot.FieldConstants;
 import frc.robot.subsystems.drive.Drive;
 import frc.robot.subsystems.drive.DriveConstants;
 import frc.robot.util.AllianceFlipUtil;
@@ -40,6 +41,7 @@ public class DriveCommands {
   private static final double FF_RAMP_RATE = 0.1; // Volts/Sec
   private static final double WHEEL_RADIUS_MAX_VELOCITY = 0.25; // Rad/Sec
   private static final double WHEEL_RADIUS_RAMP_RATE = 0.05; // Rad/Sec^2
+  private static DoubleSupplier elevatorHeight = null; // Meters
 
   private DriveCommands() {}
 
@@ -55,6 +57,18 @@ public class DriveCommands {
     return new Pose2d(new Translation2d(), linearDirection)
         .transformBy(new Transform2d(linearMagnitude, 0.0, new Rotation2d()))
         .getTranslation();
+  }
+
+  private static double getAdjustedMaxLinearVelocity() {
+    if (elevatorHeight == null || elevatorHeight.getAsDouble() < 0.5) {
+      return DriveConstants.maxLinearVelocity;
+    } else {
+      return DriveConstants.maxLinearVelocity - elevatorHeight.getAsDouble();
+    }
+  }
+
+  public static void configureMaxVelocitySuppliers(DoubleSupplier elevatorHeightSupplier) {
+    elevatorHeight = elevatorHeightSupplier;
   }
 
   /**
@@ -80,22 +94,12 @@ public class DriveCommands {
           // Convert to field relative speeds & send command
           ChassisSpeeds speeds =
               new ChassisSpeeds(
-                  linearVelocity.getX() * DriveConstants.maxLinearSpeed,
-                  linearVelocity.getY() * DriveConstants.maxLinearSpeed,
-                  omega * DriveConstants.maxAngularSpeed);
+                  linearVelocity.getX() * getAdjustedMaxLinearVelocity(),
+                  linearVelocity.getY() * getAdjustedMaxLinearVelocity(),
+                  omega * DriveConstants.maxAngularVelocity);
           drive.runVelocity(
               ChassisSpeeds.fromFieldRelativeSpeeds(
                   speeds, AllianceFlipUtil.apply(drive.getRotation())));
-
-          Autopilot autopilot = new Autopilot(DriveConstants.autoPilot);
-          APTarget target = new APTarget(new Pose2d(8, 1, new Rotation2d()));
-          Logger.recordOutput("Autopilot/target", target.getReference());
-
-          APResult result = autopilot.calculate(drive.getPose(), drive.getChassisSpeeds(), target);
-
-          Logger.recordOutput("Autopilot/vx", result.vx());
-          Logger.recordOutput("Autopilot/vy", result.vy());
-          Logger.recordOutput("Autopilot/rot", result.targetAngle().getRadians());
         },
         drive);
   }
@@ -135,8 +139,61 @@ public class DriveCommands {
               // Convert to field relative speeds & send command
               ChassisSpeeds speeds =
                   new ChassisSpeeds(
-                      linearVelocity.getX() * DriveConstants.maxLinearSpeed,
-                      linearVelocity.getY() * DriveConstants.maxLinearSpeed,
+                      linearVelocity.getX() * DriveConstants.maxLinearVelocity,
+                      linearVelocity.getY() * DriveConstants.maxLinearVelocity,
+                      omega);
+              drive.runVelocity(
+                  ChassisSpeeds.fromFieldRelativeSpeeds(
+                      speeds, AllianceFlipUtil.apply(drive.getRotation())));
+            },
+            drive)
+
+        // Reset PID controller when command starts
+        .beforeStarting(() -> angleController.reset(drive.getRotation().getRadians()));
+  }
+
+  /**
+   * Field relative drive command using joystick for linear control and PID for angular control.
+   * Similar to joystickDriveAtAngle but without the need to precalculate angle when pointing at a
+   * single point.
+   */
+  public static Command joystickDriveAtTarget(
+      Drive drive,
+      DoubleSupplier xSupplier,
+      DoubleSupplier ySupplier,
+      Supplier<Translation2d> targetSupplier) {
+
+    // Create PID controller
+    ProfiledPIDController angleController =
+        new ProfiledPIDController(
+            ANGLE_KP,
+            0.0,
+            ANGLE_KD,
+            new TrapezoidProfile.Constraints(ANGLE_MAX_VELOCITY, ANGLE_MAX_ACCELERATION));
+    angleController.enableContinuousInput(-Math.PI, Math.PI);
+
+    // Construct command
+    return Commands.run(
+            () -> {
+              // Get linear velocity
+              Translation2d linearVelocity =
+                  getLinearVelocityFromJoysticks(xSupplier.getAsDouble(), ySupplier.getAsDouble());
+
+              // Calculate angular speed
+              double omega =
+                  angleController.calculate(
+                      drive.getRotation().getRadians(),
+                      targetSupplier
+                          .get()
+                          .minus(drive.getPose().getTranslation())
+                          .getAngle()
+                          .getRadians());
+
+              // Convert to field relative speeds & send command
+              ChassisSpeeds speeds =
+                  new ChassisSpeeds(
+                      linearVelocity.getX() * DriveConstants.maxLinearVelocity,
+                      linearVelocity.getY() * DriveConstants.maxLinearVelocity,
                       omega);
               drive.runVelocity(
                   ChassisSpeeds.fromFieldRelativeSpeeds(
@@ -150,7 +207,7 @@ public class DriveCommands {
 
   public static Command AutopilotDriveToPose(
       Drive drive, Supplier<Pose2d> targetPose, Supplier<Rotation2d> entryAngle) {
-    Autopilot autopilot = new Autopilot(DriveConstants.autoPilot);
+    Autopilot autopilot = new Autopilot(DriveConstants.apConfig);
 
     return Commands.run(
             () -> {
@@ -194,6 +251,13 @@ public class DriveCommands {
               }
             })
         .repeatedly();
+  }
+
+  public static Command joystickDriveAtSpeaker(Drive drive, DoubleSupplier xSupplier, DoubleSupplier ySupplier) {
+    Translation2d speaker = AllianceFlipUtil.shouldFlip() ? FieldConstants.redSpeaker : FieldConstants.blueSpeaker;
+    return Commands.run(() -> {
+
+    });
   }
 
   /**

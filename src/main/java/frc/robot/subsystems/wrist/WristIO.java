@@ -1,4 +1,4 @@
-package frc.robot.subsystems.Devbot.wrist;
+package frc.robot.subsystems.wrist;
 
 import com.ctre.phoenix6.configs.MotionMagicConfigs;
 import com.ctre.phoenix6.configs.SlotConfigs;
@@ -7,10 +7,10 @@ import org.littletonrobotics.junction.AutoLog;
 public interface WristIO {
   @AutoLog
   static class WristIOInputs {
+    // TODO: do we make this consistant (rotations) or leave it more human readable (degrees/meters
+    // for elevators)
     public double elevationDeg = 0.0;
-    public double elevationOffsetDeg = 0.0;
     public double velocityDegPerSec = 0.0;
-    public double velocityOffsetDegPerSec = 0.0;
 
     public boolean leaderConnected = false;
     public double leaderAppliedVoltage = 0.0;
@@ -29,9 +29,6 @@ public interface WristIO {
 
   /** Run motor at volts */
   default void setVolts(double volts) {}
-
-  /** Run mechanism at speed */
-  default void setSpeed(double speed, int slot) {}
 
   /** Run mechanism at position */
   default void setPosition(double position, int slot) {}

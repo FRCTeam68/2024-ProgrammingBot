@@ -1,4 +1,4 @@
-package frc.robot.subsystems.Devbot.wrist;
+package frc.robot.subsystems.wrist;
 
 import com.ctre.phoenix6.configs.SlotConfigs;
 import edu.wpi.first.math.MathUtil;
@@ -9,13 +9,14 @@ import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
 import frc.robot.Constants;
+import frc.robot.util.PhoenixUtil.ControlMode;
 
 public class WristIOSim implements WristIO {
   private final DCMotorSim sim;
   private final PIDController controller = new PIDController(0.0, 0.0, 0.0);
-  private PID[] PIDValues = new PID[3];
-  private boolean closedLoop;
 
+  private SlotConfigs[] slotConfigs = new SlotConfigs[3];
+  private ControlMode mode = ControlMode.Neutral;
   private double appliedVoltage = 0.0;
 
   public WristIOSim() {
@@ -31,34 +32,37 @@ public class WristIOSim implements WristIO {
     if (DriverStation.isDisabled()) {
       setVolts(0.0);
     } else {
-      if (closedLoop) {
+      if (mode == ControlMode.Position) {
         setInputVoltage(controller.calculate(sim.getAngularPositionRotations()));
       }
     }
 
     sim.update(Constants.loopPeriodSecs);
+
     inputs.leaderConnected = true;
     inputs.followerConnected = true;
-    inputs.elevationDeg = sim.getAngularPositionRotations();
-    inputs.velocityDegPerSec = sim.getAngularVelocityRPM() * 60;
+    inputs.elevationDeg = Units.rotationsToDegrees(sim.getAngularPositionRotations());
+    inputs.velocityDegPerSec = Units.rotationsToDegrees(sim.getAngularVelocityRPM() / 60.0);
     inputs.leaderAppliedVoltage = appliedVoltage;
     // TODO: does this need to be divided by number of motors?
-    inputs.leaderSupplyCurrentAmps = sim.getCurrentDrawAmps();
+    inputs.leaderSupplyCurrentAmps = sim.getCurrentDrawAmps() / 2.0;
+    inputs.leaderTorqueCurrentAmps = sim.getCurrentDrawAmps() * 12.0 / appliedVoltage / 2.0;
     inputs.followerAppliedVoltage = appliedVoltage;
-    inputs.followerSupplyCurrentAmps = sim.getCurrentDrawAmps();
+    inputs.followerSupplyCurrentAmps = sim.getCurrentDrawAmps() / 2.0;
+    inputs.followerTorqueCurrentAmps = sim.getCurrentDrawAmps() * 12.0 / appliedVoltage / 2.0;
   }
 
   @Override
   public void setVolts(double volts) {
-    closedLoop = false;
+    mode = ControlMode.Voltage;
     setInputVoltage(volts);
   }
 
   @Override
   public void setPosition(double position, int slot) {
-    closedLoop = true;
-    controller.setPID(PIDValues[slot].kP, PIDValues[slot].kI, PIDValues[slot].kD);
-    controller.setSetpoint(position);
+    mode = ControlMode.Position;
+    controller.setPID(slotConfigs[slot].kP, slotConfigs[slot].kI, slotConfigs[slot].kD);
+    controller.setSetpoint(Units.degreesToRotations(position));
   }
 
   @Override
@@ -69,30 +73,18 @@ public class WristIOSim implements WristIO {
   @Override
   public void zero(double offset) {
     controller.setSetpoint(offset);
-    sim.setAngle(Units.rotationsToRadians(offset));
+    sim.setAngle(Units.degreesToRadians(offset));
   }
 
   @Override
   public void setPID(SlotConfigs... newConfig) {
     for (int i = 0; i < newConfig.length; i++) {
-      PIDValues[i] = new PID(newConfig[i].kP, newConfig[i].kI, newConfig[i].kD);
+      slotConfigs[i] = newConfig[i];
     }
   }
 
   private void setInputVoltage(double volts) {
     appliedVoltage = MathUtil.clamp(volts, -12.0, 12.0);
     sim.setInputVoltage(appliedVoltage);
-  }
-
-  private class PID {
-    double kP;
-    double kI;
-    double kD;
-
-    private PID(double kP, double kI, double kD) {
-      this.kP = kP;
-      this.kI = kI;
-      this.kD = kD;
-    }
   }
 }

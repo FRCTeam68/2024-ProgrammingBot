@@ -13,9 +13,9 @@ import frc.robot.util.PhoenixUtil.ControlMode;
 public class RollerSystemIOSim implements RollerSystemIO {
   private final DCMotorSim sim;
   private final PIDController controller = new PIDController(0.0, 0.0, 0.0);
-  private PID[] PIDValues = new PID[3];
-  private ControlMode mode = ControlMode.Neutral;
 
+  private SlotConfigs[] slotConfigs = new SlotConfigs[3];
+  private ControlMode mode = ControlMode.Neutral;
   private double appliedVoltage = 0.0;
 
   public RollerSystemIOSim(DCMotor motor, double reduction, double moi) {
@@ -27,7 +27,7 @@ public class RollerSystemIOSim implements RollerSystemIO {
     if (DriverStation.isDisabled()) {
       setVolts(0.0);
     } else {
-      if (mode == ControlMode.Speed) {
+      if (mode == ControlMode.Velocity) {
         setInputVoltage(controller.calculate(sim.getAngularVelocityRPM() / 60));
       } else if (mode == ControlMode.Position) {
         setInputVoltage(controller.calculate(sim.getAngularPositionRotations()));
@@ -37,7 +37,7 @@ public class RollerSystemIOSim implements RollerSystemIO {
     sim.update(Constants.loopPeriodSecs);
 
     inputs.connected = true;
-    inputs.positionRotations = sim.getAngularPositionRotations();
+    inputs.positionRots = sim.getAngularPositionRotations();
     inputs.velocityRotsPerSec = sim.getAngularVelocityRPM() / 60;
     inputs.appliedVoltage = appliedVoltage;
     inputs.supplyCurrentAmps = sim.getCurrentDrawAmps();
@@ -50,16 +50,16 @@ public class RollerSystemIOSim implements RollerSystemIO {
   }
 
   @Override
-  public void setSpeed(double speed, int slot) {
-    mode = ControlMode.Speed;
-    controller.setPID(PIDValues[slot].kP, PIDValues[slot].kI, PIDValues[slot].kD);
-    controller.setSetpoint(speed);
+  public void setVelocity(double velocity, int slot) {
+    mode = ControlMode.Velocity;
+    controller.setPID(slotConfigs[slot].kP, slotConfigs[slot].kI, slotConfigs[slot].kD);
+    controller.setSetpoint(velocity);
   }
 
   @Override
   public void setPosition(double position, int slot) {
     mode = ControlMode.Position;
-    controller.setPID(PIDValues[slot].kP, PIDValues[slot].kI, PIDValues[slot].kD);
+    controller.setPID(slotConfigs[slot].kP, slotConfigs[slot].kI, slotConfigs[slot].kD);
     controller.setSetpoint(position);
   }
 
@@ -75,27 +75,14 @@ public class RollerSystemIOSim implements RollerSystemIO {
   }
 
   @Override
-  public void setPID(SlotConfigs... newconfig) {
-    for (int i = 0; i < Math.min(newconfig.length, 3); i++) {
-      PIDValues[i] = new PID(newconfig[i].kP, newconfig[i].kI, newconfig[i].kD);
+  public void setPID(SlotConfigs... newConfig) {
+    for (int i = 0; i < newConfig.length; i++) {
+      slotConfigs[i] = newConfig[i];
     }
   }
 
   private void setInputVoltage(double volts) {
     appliedVoltage = MathUtil.clamp(volts, -12.0, 12.0);
     sim.setInputVoltage(appliedVoltage);
-  }
-
-  // TODO: is there a better central location to put this
-  private class PID {
-    double kP;
-    double kI;
-    double kD;
-
-    private PID(double kP, double kI, double kD) {
-      this.kP = kP;
-      this.kI = kI;
-      this.kD = kD;
-    }
   }
 }

@@ -18,41 +18,31 @@ public class Module {
       new LoggedTunableNumber("Drive/Module/DrivekS");
   private static final LoggedTunableNumber drivekV =
       new LoggedTunableNumber("Drive/Module/DrivekV");
-  private static final LoggedTunableNumber drivekT =
-      new LoggedTunableNumber("Drive/Module/DrivekT");
   private static final LoggedTunableNumber drivekP =
       new LoggedTunableNumber("Drive/Module/DrivekP");
   private static final LoggedTunableNumber drivekD =
       new LoggedTunableNumber("Drive/Module/DrivekD");
+  private static final LoggedTunableNumber turnkS = new LoggedTunableNumber("Drive/Module/TurnkS");
   private static final LoggedTunableNumber turnkP = new LoggedTunableNumber("Drive/Module/TurnkP");
   private static final LoggedTunableNumber turnkD = new LoggedTunableNumber("Drive/Module/TurnkD");
 
   static {
-    switch (Constants.getRobot()) {
-      case COMPBOT -> {
+    switch (Constants.getMode()) {
+      case REAL, REPLAY -> {
         drivekS.initDefault(0);
         drivekV.initDefault(0);
-        drivekT.initDefault(0);
         drivekP.initDefault(5);
         drivekD.initDefault(0);
+        turnkS.initDefault(0);
         turnkP.initDefault(0);
         turnkD.initDefault(0);
       }
-      case DEVBOT -> {
+      case SIM -> {
         drivekS.initDefault(0);
         drivekV.initDefault(0);
-        drivekT.initDefault(0);
-        drivekP.initDefault(5);
-        drivekD.initDefault(0);
-        turnkP.initDefault(0);
-        turnkD.initDefault(0);
-      }
-      default -> {
-        drivekS.initDefault(0);
-        drivekV.initDefault(0);
-        drivekT.initDefault(0);
         drivekP.initDefault(100);
         drivekD.initDefault(0.5);
+        turnkS.initDefault(0);
         turnkP.initDefault(5);
         turnkD.initDefault(0);
       }
@@ -113,8 +103,14 @@ public class Module {
       io.setDrivePID(
           new Slot0Configs().withKP(drivekP.getAsDouble()).withKD(drivekD.getAsDouble()));
     }
-    if (turnkP.hasChanged(hashCode()) || turnkD.hasChanged(hashCode())) {
-      io.setTurnPID(new Slot0Configs().withKP(turnkP.getAsDouble()).withKD(turnkD.getAsDouble()));
+    if (turnkS.hasChanged(hashCode())
+        || turnkP.hasChanged(hashCode())
+        || turnkD.hasChanged(hashCode())) {
+      io.setTurnPID(
+          new Slot0Configs()
+              .withKS(turnkS.getAsDouble())
+              .withKP(turnkP.getAsDouble())
+              .withKD(turnkD.getAsDouble()));
     }
 
     // Calculate positions for odometry
@@ -131,15 +127,13 @@ public class Module {
     turnDisconnectedAlert.set(!turnMotorConnectedDebouncer.calculate(inputs.turnConnected));
     turnEncoderDisconnectedAlert.set(
         !turnEncoderConnectedDebouncer.calculate(inputs.turnEncoderConnected));
-    driveTempAlert.set(inputs.driveTempCelsius > Constants.warningTemp);
-    turnTempAlert.set(inputs.turnTempCelsius > Constants.warningTemp);
+    driveTempAlert.set(inputs.driveTempCelsius > Constants.warningTempCelsius);
+    turnTempAlert.set(inputs.turnTempCelsius > Constants.warningTempCelsius);
   }
 
   /** Runs the module with the specified setpoint state. Mutates the state to optimize it. */
   public void runSetpoint(SwerveModuleState state) {
     // Optimize velocity setpoint
-    // TODO: these pull the same angle, why are they different. This is in the template, but makes
-    // no sense
     state.optimize(getAngle());
     state.cosineScale(inputs.turnPosition);
 

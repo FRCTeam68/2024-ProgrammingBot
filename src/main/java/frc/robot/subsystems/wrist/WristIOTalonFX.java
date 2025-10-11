@@ -1,4 +1,4 @@
-package frc.robot.subsystems.Devbot.wrist;
+package frc.robot.subsystems.wrist;
 
 import static frc.robot.util.PhoenixUtil.tryUntilOk;
 
@@ -23,6 +23,7 @@ import com.ctre.phoenix6.signals.NeutralModeValue;
 import com.ctre.phoenix6.signals.StaticFeedforwardSignValue;
 import edu.wpi.first.math.filter.Debouncer;
 import edu.wpi.first.math.filter.Debouncer.DebounceType;
+import edu.wpi.first.math.util.Units;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Current;
@@ -50,8 +51,6 @@ public class WristIOTalonFX implements WristIO {
   private final StatusSignal<Current> leaderSupplyCurrent;
   private final StatusSignal<Current> leaderTorqueCurrent;
   private final StatusSignal<Temperature> leaderTempCelsius;
-  private final StatusSignal<Angle> followerPosition;
-  private final StatusSignal<AngularVelocity> followerVelocity;
   private final StatusSignal<Voltage> followerAppliedVoltage;
   private final StatusSignal<Current> followerSupplyCurrent;
   private final StatusSignal<Current> followerTorqueCurrent;
@@ -98,8 +97,6 @@ public class WristIOTalonFX implements WristIO {
     leaderSupplyCurrent = talon.getSupplyCurrent();
     leaderTorqueCurrent = talon.getTorqueCurrent();
     leaderTempCelsius = talon.getDeviceTemp();
-    followerPosition = followerTalon.getPosition();
-    followerVelocity = followerTalon.getVelocity();
     followerAppliedVoltage = followerTalon.getMotorVoltage();
     followerSupplyCurrent = followerTalon.getSupplyCurrent();
     followerTorqueCurrent = followerTalon.getTorqueCurrent();
@@ -115,8 +112,6 @@ public class WristIOTalonFX implements WristIO {
                 leaderAppliedVoltage,
                 leaderSupplyCurrent,
                 leaderTorqueCurrent,
-                followerPosition,
-                followerVelocity,
                 followerAppliedVoltage,
                 followerSupplyCurrent,
                 followerTorqueCurrent));
@@ -132,8 +127,6 @@ public class WristIOTalonFX implements WristIO {
         leaderSupplyCurrent,
         leaderTorqueCurrent,
         leaderTempCelsius,
-        followerPosition,
-        followerVelocity,
         followerAppliedVoltage,
         followerSupplyCurrent,
         followerTorqueCurrent,
@@ -142,11 +135,8 @@ public class WristIOTalonFX implements WristIO {
 
   @Override
   public void updateInputs(WristIOInputs inputs) {
-    inputs.elevationDeg = leaderPosition.getValueAsDouble();
-    inputs.elevationDeg = followerPosition.getValueAsDouble() - leaderPosition.getValueAsDouble();
-    inputs.velocityDegPerSec = leaderVelocity.getValueAsDouble() * 360;
-    inputs.velocityOffsetDegPerSec =
-        (followerVelocity.getValueAsDouble() - leaderVelocity.getValueAsDouble()) * 360;
+    inputs.elevationDeg = Units.rotationsToDegrees(leaderPosition.getValueAsDouble());
+    inputs.velocityDegPerSec = Units.rotationsToDegrees(leaderVelocity.getValueAsDouble());
 
     inputs.leaderConnected =
         connectedDebouncer.calculate(
@@ -164,11 +154,7 @@ public class WristIOTalonFX implements WristIO {
     inputs.followerConnected =
         followerConnectedDebouncer.calculate(
             BaseStatusSignal.isAllGood(
-                followerPosition,
-                followerVelocity,
-                followerAppliedVoltage,
-                followerSupplyCurrent,
-                followerTorqueCurrent));
+                followerAppliedVoltage, followerSupplyCurrent, followerTorqueCurrent));
     inputs.followerAppliedVoltage = followerAppliedVoltage.getValueAsDouble();
     inputs.followerSupplyCurrentAmps = followerSupplyCurrent.getValueAsDouble();
     inputs.followerTorqueCurrentAmps = followerTorqueCurrent.getValueAsDouble();
@@ -181,13 +167,19 @@ public class WristIOTalonFX implements WristIO {
   }
 
   @Override
-  public void setSpeed(double speed, int slot) {
-    talon.setControl(velocityOut.withVelocity(speed).withSlot(slot));
+  public void setPosition(double position, int slot) {
+    talon.setControl(positionOut.withPosition(Units.degreesToRotations(position)).withSlot(slot));
   }
 
   @Override
-  public void setPosition(double position, int slot) {
-    talon.setControl(positionOut.withPosition(position).withSlot(slot));
+  public void stop() {
+    talon.setControl(neutralOut);
+  }
+
+  @Override
+  public void zero(double offset) {
+    setVolts(0);
+    talon.setPosition(Units.degreesToRotations(offset));
   }
 
   @Override
@@ -220,16 +212,5 @@ public class WristIOTalonFX implements WristIO {
     config.MotionMagic.MotionMagicAcceleration = newconfig.MotionMagicAcceleration;
     config.MotionMagic.MotionMagicJerk = newconfig.MotionMagicJerk;
     tryUntilOk(5, () -> talon.getConfigurator().apply(config, 0.25));
-  }
-
-  @Override
-  public void stop() {
-    talon.setControl(neutralOut);
-  }
-
-  @Override
-  public void zero(double offset) {
-    setVolts(0);
-    talon.setPosition(offset);
   }
 }

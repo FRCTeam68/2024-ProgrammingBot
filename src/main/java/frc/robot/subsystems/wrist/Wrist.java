@@ -1,31 +1,35 @@
-package frc.robot.subsystems.Devbot.wrist;
+package frc.robot.subsystems.wrist;
 
-import com.ctre.phoenix6.configs.MotionMagicConfigs;
 import com.ctre.phoenix6.configs.SlotConfigs;
+import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
-import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
 import frc.robot.util.LoggedTunableNumber;
 import frc.robot.util.PhoenixUtil.ControlMode;
 import lombok.Getter;
+import org.littletonrobotics.junction.AutoLogOutput;
 import org.littletonrobotics.junction.Logger;
-import org.littletonrobotics.junction.networktables.LoggedNetworkNumber;
 
 public class Wrist extends SubsystemBase {
+  @Getter private final double minimum = 0;
+  @Getter private final double maximum = 45;
+  private final double startingElevation = 45;
+
+  @Getter
+  private final LoggedTunableNumber intake = new LoggedTunableNumber("Wrist/IntakeElevation", 40);
+
   private final WristIO io;
   protected final WristIOInputsAutoLogged inputs = new WristIOInputsAutoLogged();
   private final Alert leaderDisconnectedAlert =
-      new Alert("Lead wrist motor disconnected.", AlertType.kError);
+      new Alert("Lead wrist motor (left) disconnected.", AlertType.kError);
   private final Alert followerDisconnectedAlert =
-      new Alert("Follower wrist motor disconnected.", AlertType.kError);
-  private final Alert motorsOutOfSync = new Alert("Wrist motors out of sync", AlertType.kWarning);
+      new Alert("Follower wrist motor (right) disconnected.", AlertType.kError);
   private final Alert leaderTempAlert =
       new Alert("Lead wrist motor (left) is too hot!", AlertType.kWarning);
   private final Alert followerTempAlert =
@@ -34,10 +38,6 @@ public class Wrist extends SubsystemBase {
   private LoggedTunableNumber kP0 = new LoggedTunableNumber("Wrist/Slot0/kP", 10);
   private LoggedTunableNumber kD0 = new LoggedTunableNumber("Wrist/Slot0/kD", 0);
   private LoggedTunableNumber kS0 = new LoggedTunableNumber("Wrist/Slot0/kS", 0.5);
-  private LoggedTunableNumber kG0 = new LoggedTunableNumber("Wrist/Slot0/kG", 0);
-
-  private LoggedTunableNumber mmV = new LoggedTunableNumber("Wrist/MotionMagic/Velocity", 100);
-  private LoggedTunableNumber mmA = new LoggedTunableNumber("Wrist/MotionMagic/Acceleration", 120);
 
   private LoggedTunableNumber setpointBandPosition =
       new LoggedTunableNumber("Wrist/PositionSetpointBandPosition", 0.2);
@@ -46,22 +46,10 @@ public class Wrist extends SubsystemBase {
 
   @Getter private ControlMode mode = ControlMode.Neutral;
 
-  private LoggedNetworkNumber testSetpoint =
-      new LoggedNetworkNumber("Testing/Wrist/RunToPosition/TestSetpoint", 0);
-
   public Wrist(WristIO io) {
     this.io = io;
 
-    setPID();
-    setMotionMagic();
-    zero();
-
-    // Dashboard tuning commands
-
-    SmartDashboard.putData("Wrist/Zero", Commands.runOnce(() -> zero()));
-    SmartDashboard.putData(
-        "Wrist/RunToPosition/RunToTestSetpoint",
-        Commands.runOnce(() -> setPosition(testSetpoint.get())));
+    zero(startingElevation);
   }
 
   public void periodic() {
@@ -69,13 +57,10 @@ public class Wrist extends SubsystemBase {
     Logger.processInputs("Wrist", inputs);
     leaderDisconnectedAlert.set(!inputs.leaderConnected);
     followerDisconnectedAlert.set(!inputs.followerConnected);
-    motorsOutOfSync.set(inputs.elevationOffsetDeg > 2);
-    leaderTempAlert.set(inputs.leaderTempCelsius > Constants.warningTemp);
-    followerTempAlert.set(inputs.followerTempCelsius > Constants.warningTemp);
-    Logger.recordOutput("Wrist/AtPosition", atPosition());
+    leaderTempAlert.set(inputs.leaderTempCelsius > Constants.warningTempCelsius);
+    followerTempAlert.set(inputs.followerTempCelsius > Constants.warningTempCelsius);
 
     Logger.recordOutput("Wrist/SetpointVolts", (mode == ControlMode.Voltage) ? setpoint : 0);
-    Logger.recordOutput("Wrist/SetpointRotsPerSec", (mode == ControlMode.Speed) ? setpoint : 0);
     Logger.recordOutput(
         "Wrist/SetpointElevationDeg", (mode == ControlMode.Position) ? setpoint : 0);
 
@@ -87,15 +72,8 @@ public class Wrist extends SubsystemBase {
 
     // Update tunable numbers
     if (Constants.tuningMode) {
-      if (kP0.hasChanged(hashCode())
-          || kD0.hasChanged(hashCode())
-          || kS0.hasChanged(hashCode())
-          || kG0.hasChanged(hashCode())) {
+      if (kP0.hasChanged(hashCode()) || kD0.hasChanged(hashCode()) || kS0.hasChanged(hashCode())) {
         setPID();
-      }
-
-      if (mmV.hasChanged(hashCode()) || mmA.hasChanged(hashCode())) {
-        setMotionMagic();
       }
     }
   }
@@ -116,23 +94,12 @@ public class Wrist extends SubsystemBase {
   }
 
   /**
-   * Set goal speed of the mechanism in degrees of elevation per second
-   *
-   * @param speed Goal speed
-   */
-  public void setSpeed(double speed) {
-    setpoint = speed;
-    mode = ControlMode.Speed;
-    io.setSpeed(speed, 0);
-  }
-
-  /**
    * Set goal position of the mechanism in degrees of elevation
    *
    * @param elevation Goal position
    */
   public void setPosition(double elevation) {
-    setpoint = elevation;
+    setpoint = MathUtil.clamp(elevation, minimum, maximum);
     mode = ControlMode.Position;
     io.setPosition(elevation, 0);
   }
@@ -142,7 +109,7 @@ public class Wrist extends SubsystemBase {
    *
    * @return Velocity
    */
-  public double getSpeed() {
+  public double getVelocity() {
     return inputs.velocityDegPerSec;
   }
 
@@ -186,7 +153,8 @@ public class Wrist extends SubsystemBase {
    *
    * @return True if in position control mode and mechanism is at goal position, false otherwise
    */
-  public boolean atPosition() {
+  @AutoLogOutput(key = "Wrist/atSetpoint")
+  public boolean atSetpoint() {
     return (mode == ControlMode.Position)
         ? Math.abs(setpoint - inputs.elevationDeg) < setpointBandPosition.getAsDouble()
         : false;
@@ -198,9 +166,9 @@ public class Wrist extends SubsystemBase {
     io.stop();
   }
 
-  /** Sets the current mechanism position to zero */
-  public void zero() {
-    io.zero(55);
+  /** Sets the current mechanism position */
+  public void zero(double offset) {
+    io.zero(offset);
   }
 
   private void setPID() {
@@ -208,14 +176,6 @@ public class Wrist extends SubsystemBase {
         new SlotConfigs()
             .withKP(kP0.getAsDouble())
             .withKD(kD0.getAsDouble())
-            .withKS(kS0.getAsDouble())
-            .withKG(kG0.getAsDouble()));
-  }
-
-  private void setMotionMagic() {
-    io.setMotionMagic(
-        new MotionMagicConfigs()
-            .withMotionMagicCruiseVelocity(mmV.getAsDouble())
-            .withMotionMagicAcceleration(mmA.getAsDouble()));
+            .withKS(kS0.getAsDouble()));
   }
 }

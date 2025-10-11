@@ -1,22 +1,7 @@
-// Copyright 2021-2025 FRC 6328
-// http://github.com/Mechanical-Advantage
-//
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// version 3 as published by the Free Software Foundation or
-// available in the root directory of this project.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU General Public License for more details.
-
 package frc.robot;
 
 import com.ctre.phoenix6.SignalLogger;
-import edu.wpi.first.net.WebServer;
 import edu.wpi.first.wpilibj.DriverStation;
-import edu.wpi.first.wpilibj.Filesystem;
 import edu.wpi.first.wpilibj.Threads;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
@@ -43,7 +28,8 @@ public class Robot extends LoggedRobot {
   public Robot() {
     // Record metadata
     Logger.recordMetadata("TuningMode", Boolean.toString(Constants.tuningMode));
-    Logger.recordMetadata("Robot", Constants.getRobot().toString());
+    Logger.recordMetadata("Robot", "2024");
+    Logger.recordMetadata("Mode", Constants.getMode().toString());
     Logger.recordMetadata("ProjectName", BuildConstants.MAVEN_NAME);
     Logger.recordMetadata("BuildDate", BuildConstants.BUILD_DATE);
     Logger.recordMetadata("GitSHA", BuildConstants.GIT_SHA);
@@ -84,9 +70,6 @@ public class Robot extends LoggedRobot {
         break;
     }
 
-    // Elasic remote layout downloading
-    WebServer.start(5800, Filesystem.getDeployDirectory().getPath());
-
     // Rely on our custom alerts for disconnected controllers
     DriverStation.silenceJoystickConnectionWarning(true);
 
@@ -95,14 +78,14 @@ public class Robot extends LoggedRobot {
     // before
     Logger.start();
 
-    // Instantiate our RobotContainer. This will perform all our button bindings,
-    // and put our autonomous chooser on the dashboard.
+    // Instantiate our RobotContainer. This will perform all our button bindings.
     robotContainer = new RobotContainer();
 
-    // TODO: do we need to be logging this?
-    SignalLogger.setPath("//media/sda1/logs");
-    SignalLogger.start();
+    // Hoot logging
     // do not call the setPath and hoot log will be logged to rio at "/home/lvuser/logs"
+    SignalLogger.enableAutoLogging(false);
+    // SignalLogger.setPath("//media/sda1/logs");
+    // SignalLogger.start();
 
     // Threads.setCurrentThreadPriority(true, 1);
   }
@@ -131,7 +114,7 @@ public class Robot extends LoggedRobot {
     // Return to non-RT thread priority
     Threads.setCurrentThreadPriority(false, 10);
 
-    robotContainer.updateAlerts();
+    RobotContainer.controllerAlerts();
 
     CANUtil.logStatus();
 

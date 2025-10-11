@@ -7,13 +7,13 @@ import org.littletonrobotics.junction.AutoLog;
 public interface RollerSystemIO {
   @AutoLog
   static class RollerSystemIOInputs {
-    public double positionRotations = 0.0;
+    public boolean connected = false;
+    public double positionRots = 0.0;
     public double velocityRotsPerSec = 0.0;
     public double appliedVoltage = 0.0;
     public double supplyCurrentAmps = 0.0;
     public double torqueCurrentAmps = 0.0;
     public double tempCelsius = 0.0;
-    public boolean connected = false;
   }
 
   default void updateInputs(RollerSystemIOInputs inputs) {}
@@ -22,12 +22,12 @@ public interface RollerSystemIO {
   default void setVolts(double volts) {}
 
   /**
-   * Run roller to speed
+   * Run roller at velocity
    *
-   * @param speed Velocity in mechanism rotations per second
+   * @param velocity Velocity in mechanism rotations per second
    * @param slot Slot must be within [0,2]
    */
-  default void setSpeed(double speed, int slot) {}
+  default void setVelocity(double velocity, int slot) {}
 
   /**
    * Run roller to position

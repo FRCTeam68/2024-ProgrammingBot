@@ -18,11 +18,11 @@ public class ModuleIOSim implements ModuleIO {
 
   private final DCMotorSim driveSim =
       new DCMotorSim(
-          LinearSystemId.createDCMotorSystem(driveMotorModel, 0.025, ModuleIOComp.driveReduction),
+          LinearSystemId.createDCMotorSystem(driveMotorModel, 0.025, DriveConstants.driveReduction),
           driveMotorModel);
   private final DCMotorSim turnSim =
       new DCMotorSim(
-          LinearSystemId.createDCMotorSystem(turnMotorModel, 0.004, ModuleIOComp.turnReduction),
+          LinearSystemId.createDCMotorSystem(turnMotorModel, 0.004, DriveConstants.turnReduction),
           turnMotorModel);
 
   private boolean driveClosedLoop = false;
@@ -75,7 +75,7 @@ public class ModuleIOSim implements ModuleIO {
 
     inputs.turnEncoderConnected = true;
     inputs.turnAbsolutePosition = new Rotation2d(turnSim.getAngularPositionRad());
-    inputs.turnMagnetHealth = MagnetHealthValue.Magnet_Green;
+    inputs.turnEncoderMagnetHealth = MagnetHealthValue.Magnet_Green;
     inputs.turnEncoderSyncStickyFault = false;
 
     // Update odometry inputs (50Hz because high-frequency odometry in sim doesn't matter)

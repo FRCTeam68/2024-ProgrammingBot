@@ -30,11 +30,6 @@ import frc.robot.util.PhoenixUtil;
 import java.util.Queue;
 
 public class ModuleIOComp implements ModuleIO {
-  private static final double driveCurrentLimitAmps = 80;
-  private static final double turnCurrentLimitAmps = 40;
-  public static final double driveReduction = 8.142857142857142;
-  public static final double turnReduction = 21.428571428571427;
-
   // Hardware objects
   private final TalonFX driveTalon;
   private final TalonFX turnTalon;
@@ -77,6 +72,7 @@ public class ModuleIOComp implements ModuleIO {
   private final StatusSignal<Temperature> turnTempCelsius;
   private final StatusSignal<Boolean> turnEncoderSyncStickyFault;
 
+  @SuppressWarnings("unused")
   public ModuleIOComp(ModuleConfig constants) {
     driveTalon = new TalonFX(constants.driveMotorId(), DriveConstants.canbus);
     turnTalon = new TalonFX(constants.turnMotorId(), DriveConstants.canbus);
@@ -85,10 +81,10 @@ public class ModuleIOComp implements ModuleIO {
     // Configure drive motor
     driveConfig.MotorOutput.NeutralMode = NeutralModeValue.Brake;
     driveConfig.Slot0 = new Slot0Configs().withKP(0).withKI(0).withKD(0);
-    driveConfig.Feedback.SensorToMechanismRatio = driveReduction;
-    driveConfig.TorqueCurrent.PeakForwardTorqueCurrent = driveCurrentLimitAmps;
-    driveConfig.TorqueCurrent.PeakReverseTorqueCurrent = -driveCurrentLimitAmps;
-    driveConfig.CurrentLimits.StatorCurrentLimit = driveCurrentLimitAmps;
+    driveConfig.Feedback.SensorToMechanismRatio = DriveConstants.driveReduction;
+    driveConfig.TorqueCurrent.PeakForwardTorqueCurrent = DriveConstants.driveCurrentLimitAmps;
+    driveConfig.TorqueCurrent.PeakReverseTorqueCurrent = -DriveConstants.driveCurrentLimitAmps;
+    driveConfig.CurrentLimits.StatorCurrentLimit = DriveConstants.driveCurrentLimitAmps;
     driveConfig.CurrentLimits.StatorCurrentLimitEnable = true;
     // TODO: mechanical advantage had this, but I don't know if we want it
     driveConfig.ClosedLoopRamps.TorqueClosedLoopRampPeriod = 0.02;
@@ -100,11 +96,11 @@ public class ModuleIOComp implements ModuleIO {
     turnConfig.Slot0 = new Slot0Configs().withKP(0).withKI(0).withKD(0);
     turnConfig.Feedback.FeedbackRemoteSensorID = constants.encoderId();
     turnConfig.Feedback.FeedbackSensorSource = FeedbackSensorSourceValue.FusedCANcoder;
-    turnConfig.Feedback.RotorToSensorRatio = turnReduction;
+    turnConfig.Feedback.RotorToSensorRatio = DriveConstants.turnReduction;
     turnConfig.ClosedLoopGeneral.ContinuousWrap = true;
-    turnConfig.TorqueCurrent.PeakForwardTorqueCurrent = turnCurrentLimitAmps;
-    turnConfig.TorqueCurrent.PeakReverseTorqueCurrent = -turnCurrentLimitAmps;
-    turnConfig.CurrentLimits.StatorCurrentLimit = turnCurrentLimitAmps;
+    turnConfig.TorqueCurrent.PeakForwardTorqueCurrent = DriveConstants.turnCurrentLimitAmps;
+    turnConfig.TorqueCurrent.PeakReverseTorqueCurrent = -DriveConstants.turnCurrentLimitAmps;
+    turnConfig.CurrentLimits.StatorCurrentLimit = DriveConstants.turnCurrentLimitAmps;
     turnConfig.CurrentLimits.StatorCurrentLimitEnable = true;
     // TODO: do we want these?
     // turnConfig.MotionMagic.MotionMagicCruiseVelocity = 100.0 / DriveConstants.turnGearRatio;
@@ -224,7 +220,7 @@ public class ModuleIOComp implements ModuleIO {
     // TODO: MA subtracts the encoder offset, this would normalize the values. should we do it? Or
     // does the cancoder already do this?
     inputs.turnAbsolutePosition = Rotation2d.fromRotations(turnAbsolutePosition.getValueAsDouble());
-    inputs.turnMagnetHealth = turnMagnetHealth.getValue();
+    inputs.turnEncoderMagnetHealth = turnMagnetHealth.getValue();
     inputs.turnEncoderSyncStickyFault = turnEncoderSyncStickyFault.getValue();
 
     // Update odometry inputs

@@ -41,7 +41,7 @@ public class TemplateSingleMotorWithCancoderIOSim implements TemplateSingleMotor
     if (DriverStation.isDisabled()) {
       setInputVoltage(0.0);
     } else {
-      if (mode == ControlMode.Speed) {
+      if (mode == ControlMode.Velocity) {
         // TODO: test this works
         setInputVoltage(controller.calculate(sim.getAngularVelocityRPM() / 60));
       } else if (mode == ControlMode.Position) {
@@ -68,7 +68,7 @@ public class TemplateSingleMotorWithCancoderIOSim implements TemplateSingleMotor
 
   @Override
   public void setSpeed(double speed, int slot) {
-    mode = ControlMode.Speed;
+    mode = ControlMode.Velocity;
     controller.setPID(PIDValues[slot].kP, PIDValues[slot].kI, PIDValues[slot].kD);
     controller.setSetpoint(speed);
   }

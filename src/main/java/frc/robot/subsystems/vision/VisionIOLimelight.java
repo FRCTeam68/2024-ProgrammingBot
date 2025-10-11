@@ -21,7 +21,6 @@ public class VisionIOLimelight implements VisionIO {
   private final String name;
   private final Supplier<Rotation2d> rotationSupplier;
   private final DoubleArrayPublisher orientationPublisher;
-
   private final DoubleSubscriber latencySubscriber;
   private final DoubleSubscriber txSubscriber;
   private final DoubleSubscriber tySubscriber;
@@ -135,9 +134,9 @@ public class VisionIOLimelight implements VisionIO {
 
     // Save tag IDs to inputs objects
     inputs.tagIds = new int[tagIds.size()];
-    int i = 0;
+    int n = 0;
     for (int id : tagIds) {
-      inputs.tagIds[i++] = id;
+      inputs.tagIds[n++] = id;
     }
 
     // Read new object observations from NetworkTables
@@ -145,27 +144,28 @@ public class VisionIOLimelight implements VisionIO {
 
     for (var rawSample : objectSubscriber.readQueue()) {
       if (rawSample.value.length == 0) continue;
+      objectObservations.add(
+          new ObjectObservation(
+              // Center X
+              1,
 
-      // for (int i = 0; i < number of objects detected; i += number to next object) {
-      // objectObservations.add(
-      //   new ObjectObservation(
-      //     // Center X
-      //     1,
+              // Center y
+              1,
 
-      //     // Center y
-      //     1,
+              // Width
+              1,
 
-      //     // Width
-      //     1,
+              // Height
+              1,
 
-      //     // Height
-      //     1,
+              // Confidence of observation
+              1));
+    }
 
-      //     // Confidence of observation
-      //     1
-      // ));
-
-      // }
+    // Save object observations to inputs object
+    inputs.objectObservations = new ObjectObservation[objectObservations.size()];
+    for (int i = 0; i < objectObservations.size(); i++) {
+      inputs.objectObservations[i] = objectObservations.get(i);
     }
   }
 

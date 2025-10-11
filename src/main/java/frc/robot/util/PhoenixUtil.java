@@ -46,7 +46,7 @@ public class PhoenixUtil {
 
   public static enum ControlMode {
     Voltage,
-    Speed,
+    Velocity,
     Position,
     Neutral
   }

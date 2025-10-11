@@ -131,6 +131,12 @@ tasks.withType(JavaCompile) {
     options.compilerArgs.add '-XDstringConcat=inline'
 }
 
+// Check constants for pull request
+task(checkConstantsPullRequest, dependsOn: "classes", type: JavaExec) {
+    main = "frc.robot.Constants\$CheckPullRequest"
+    classpath = sourceSets.main.runtimeClasspath
+}
+
 // Create version file
 project.compileJava.dependsOn(createVersionFile)
 gversion {
@@ -142,7 +148,6 @@ gversion {
     indent       = "  "
 }
 
-// TODO: my understanding is we can use this to auto commit at events for replays. all we need to do is start branch name with event or whatever we set. investigate
 // Create commit with working changes on event branches
 task(eventDeploy) {
     doLast {

@@ -1,7 +1,8 @@
 package frc.robot.subsystems.rollers;
 
-import com.ctre.phoenix6.configs.MotionMagicConfigs;
 import com.ctre.phoenix6.configs.SlotConfigs;
+import edu.wpi.first.math.filter.Debouncer;
+import edu.wpi.first.math.filter.Debouncer.DebounceType;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
@@ -16,14 +17,13 @@ public class RollerSystem extends SubsystemBase {
   private final RollerSystemIO io;
   protected final RollerSystemIOInputsAutoLogged inputs = new RollerSystemIOInputsAutoLogged();
 
+  private final Debouncer connectedDebouncer = new Debouncer(0.5, DebounceType.kFalling);
   private final Alert disconnectedAlert;
   private final Alert tempAlert;
 
   private LoggedTunableNumber rollerkP;
   private LoggedTunableNumber rollerkD;
   private LoggedTunableNumber rollerkS;
-  private LoggedTunableNumber rollerMMV;
-  private LoggedTunableNumber rollerMMA;
 
   @Getter private double setpoint = 0.0;
 
@@ -36,8 +36,6 @@ public class RollerSystem extends SubsystemBase {
     rollerkP = new LoggedTunableNumber(name + "/kP");
     rollerkD = new LoggedTunableNumber(name + "/kD");
     rollerkS = new LoggedTunableNumber(name + "/kS");
-    rollerMMV = new LoggedTunableNumber(name + "/MMV");
-    rollerMMA = new LoggedTunableNumber(name + "/MMA");
 
     disconnectedAlert = new Alert(name + " motor disconnected!", AlertType.kError);
     tempAlert = new Alert(name + "motor is too hot!", AlertType.kWarning);
@@ -46,14 +44,15 @@ public class RollerSystem extends SubsystemBase {
   public void periodic() {
     io.updateInputs(inputs);
     Logger.processInputs(name, inputs);
-    disconnectedAlert.set(!inputs.connected);
-    tempAlert.set(inputs.tempCelsius > Constants.warningTemp);
+    disconnectedAlert.set(!connectedDebouncer.calculate(inputs.connected));
+    tempAlert.set(inputs.tempCelsius > Constants.warningTempCelsius);
 
     Logger.recordOutput(name + "/SetpointVolts", (mode == ControlMode.Voltage) ? setpoint : 0);
-    Logger.recordOutput(name + "/SetpointRotPerSec", (mode == ControlMode.Speed) ? setpoint : 0);
+    Logger.recordOutput(name + "/SetpointRotPerSec", (mode == ControlMode.Velocity) ? setpoint : 0);
     Logger.recordOutput(
         name + "/SetpointPositionDeg", (mode == ControlMode.Position) ? setpoint : 0);
 
+    // TODO: do we always check this. we wouldn't need to call set pid in rollersystem
     // Update tunable numbers
     if (Constants.tuningMode) {
       if (rollerkP.hasChanged(hashCode())
@@ -64,12 +63,6 @@ public class RollerSystem extends SubsystemBase {
                 .withKP(rollerkP.getAsDouble())
                 .withKD(rollerkD.getAsDouble())
                 .withKS(rollerkS.getAsDouble()));
-      }
-      if (rollerMMV.hasChanged(hashCode()) || rollerMMA.hasChanged(hashCode())) {
-        io.setMotionMagic(
-            new MotionMagicConfigs()
-                .withMotionMagicCruiseVelocity(rollerMMV.getAsDouble())
-                .withMotionMagicAcceleration(rollerMMA.getAsDouble()));
       }
     }
   }
@@ -82,13 +75,6 @@ public class RollerSystem extends SubsystemBase {
     io.setPID(newConfig);
   }
 
-  /** Must call this once and only once in robotcontainer after each RollerSystem is created */
-  public void setMotionMagic(MotionMagicConfigs newconfig) {
-    rollerMMV.initDefault(newconfig.MotionMagicCruiseVelocity);
-    rollerMMA.initDefault(newconfig.MotionMagicAcceleration);
-    io.setMotionMagic(newconfig);
-  }
-
   /** Run roller at volts */
   public void setVolts(double inputVolts) {
     setpoint = inputVolts;
@@ -97,14 +83,14 @@ public class RollerSystem extends SubsystemBase {
   }
 
   /**
-   * Run roller to speed
+   * Run roller at velocity
    *
-   * @param speed Velocity in mechanism rotations per second
+   * @param velocity Velocity in mechanism rotations per second
    */
-  public void setSpeed(double speed) {
-    setpoint = speed;
-    mode = ControlMode.Speed;
-    io.setSpeed(speed, 0);
+  public void setVelocity(double velocity) {
+    setpoint = velocity;
+    mode = ControlMode.Velocity;
+    io.setVelocity(velocity, 0);
   }
 
   /**
@@ -132,7 +118,7 @@ public class RollerSystem extends SubsystemBase {
   /**
    * @return Velocity of roller in mechanism rotations per second
    */
-  public double getSpeed() {
+  public double getVelocity() {
     return inputs.velocityRotsPerSec;
   }
 
@@ -140,7 +126,7 @@ public class RollerSystem extends SubsystemBase {
    * @return Position of roller in mechanism rotations
    */
   public double getPosition() {
-    return inputs.positionRotations;
+    return inputs.positionRots;
   }
 
   /**

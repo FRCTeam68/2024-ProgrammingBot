@@ -26,6 +26,7 @@ public class GyroIOPigeon2 implements GyroIO {
   private final StatusSignal<AngularVelocity> pitchVelocity = pigeon.getAngularVelocityXWorld();
   private final StatusSignal<AngularVelocity> rollVelocity = pigeon.getAngularVelocityYWorld();
 
+  @SuppressWarnings("unused")
   public GyroIOPigeon2() {
     pigeon.getConfigurator().apply(new Pigeon2Configuration());
     // TODO: why is this set twice?

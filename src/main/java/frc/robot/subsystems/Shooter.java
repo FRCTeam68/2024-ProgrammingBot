@@ -1,28 +1,20 @@
-package frc.robot.subsystems.Devbot.shooter;
+package frc.robot.subsystems;
 
 import com.ctre.phoenix6.configs.MotionMagicConfigs;
 import com.ctre.phoenix6.configs.SlotConfigs;
-import com.ctre.phoenix6.signals.InvertedValue;
-import com.ctre.phoenix6.signals.NeutralModeValue;
-import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
 import frc.robot.subsystems.rollers.RollerSystemIO;
 import frc.robot.subsystems.rollers.RollerSystemIOInputsAutoLogged;
-import frc.robot.subsystems.rollers.RollerSystemIOSim;
-import frc.robot.subsystems.rollers.RollerSystemIOTalonFX;
 import frc.robot.util.LoggedTunableNumber;
 import frc.robot.util.PhoenixUtil.ControlMode;
 import lombok.Getter;
+import org.littletonrobotics.junction.AutoLogOutput;
 import org.littletonrobotics.junction.Logger;
 
 public class Shooter extends SubsystemBase {
-  private final double reduction = 1;
-  private final int currentLimitAmps = 70;
-  private final double moi = 0.1;
-
   private final RollerSystemIO upperIO;
   private final RollerSystemIO lowerIO;
   protected final RollerSystemIOInputsAutoLogged upperInputs = new RollerSystemIOInputsAutoLogged();
@@ -42,62 +34,37 @@ public class Shooter extends SubsystemBase {
   // PID
   private final String pidKey = "Shooter/Slot";
   private LoggedTunableNumber[] kP = {
-    new LoggedTunableNumber(pidKey + "0/kP", 5), new LoggedTunableNumber(pidKey + "1/kP", 5)
+    new LoggedTunableNumber(pidKey + "0/kP"), new LoggedTunableNumber(pidKey + "1/kP")
   };
   private LoggedTunableNumber[] kD = {
-    new LoggedTunableNumber(pidKey + "0/kD", 0), new LoggedTunableNumber(pidKey + "1/kD", 0)
+    new LoggedTunableNumber(pidKey + "0/kD"), new LoggedTunableNumber(pidKey + "1/kD")
   };
   private LoggedTunableNumber[] kS = {
-    new LoggedTunableNumber(pidKey + "0/kS", 0.5), new LoggedTunableNumber(pidKey + "1/kS", 0.5)
+    new LoggedTunableNumber(pidKey + "0/kS"), new LoggedTunableNumber(pidKey + "1/kS")
   };
-
-  private LoggedTunableNumber mmV = new LoggedTunableNumber("Shooter/MotionMagic/Velocity", 40);
-  private LoggedTunableNumber mmA =
-      new LoggedTunableNumber("Shooter/MotionMagic/Acceleration", 120);
-
+  private LoggedTunableNumber mmA = new LoggedTunableNumber("Shooter/MotionMagic/Acceleration");
   private LoggedTunableNumber setpointBandSpeed =
-      new LoggedTunableNumber("Shooter/SetpointBandSpeed", 0.2);
+      new LoggedTunableNumber("Shooter/AtSetpointError");
+
+  {
+    kP[0].initDefault(5);
+    kD[0].initDefault(5);
+    kS[0].initDefault(0);
+    kP[1].initDefault(5);
+    kD[1].initDefault(5);
+    kS[1].initDefault(0);
+    mmA.initDefault(100);
+    setpointBandSpeed.initDefault(1);
+  }
 
   @Getter private double upperSetpoint = 0.0;
   @Getter private double lowerSetpoint = 0.0;
 
   @Getter private ControlMode controlMode = ControlMode.Neutral;
 
-  public Shooter() {
-    // TODO: should this be defined here or in robot container
-    switch (Constants.getMode()) {
-      case REAL:
-        upperIO =
-            new RollerSystemIOTalonFX(
-                21,
-                "rio",
-                currentLimitAmps,
-                InvertedValue.Clockwise_Positive,
-                NeutralModeValue.Coast,
-                reduction);
-        lowerIO =
-            new RollerSystemIOTalonFX(
-                20,
-                "rio",
-                currentLimitAmps,
-                InvertedValue.CounterClockwise_Positive,
-                NeutralModeValue.Coast,
-                reduction);
-        break;
-
-      case SIM:
-        upperIO = new RollerSystemIOSim(DCMotor.getFalcon500Foc(1), reduction, moi);
-        lowerIO = new RollerSystemIOSim(DCMotor.getFalcon500Foc(1), reduction, moi);
-        break;
-
-      default:
-        upperIO = new RollerSystemIO() {};
-        lowerIO = new RollerSystemIO() {};
-        break;
-    }
-
-    setPID();
-    setMotionMagic();
+  public Shooter(RollerSystemIO lowerIO, RollerSystemIO upperIO) {
+    this.upperIO = upperIO;
+    this.lowerIO = lowerIO;
   }
 
   public void periodic() {
@@ -107,19 +74,19 @@ public class Shooter extends SubsystemBase {
     Logger.processInputs("Shooter/Lower", lowerInputs);
     upperDisconnectedAlert.set(!upperInputs.connected);
     lowerDisconnectedAlert.set(!lowerInputs.connected);
-    upperTempAlert.set(upperInputs.tempCelsius > Constants.warningTemp);
-    lowerTempAlert.set(lowerInputs.tempCelsius > Constants.warningTemp);
+    upperTempAlert.set(upperInputs.tempCelsius > Constants.warningTempCelsius);
+    lowerTempAlert.set(lowerInputs.tempCelsius > Constants.warningTempCelsius);
 
     Logger.recordOutput(
         "Shooter/Upper/SetpointVolts", (controlMode == ControlMode.Voltage) ? upperSetpoint : 0);
     Logger.recordOutput(
-        "Shooter/Upper/SetpointRotsPerSec", (controlMode == ControlMode.Speed) ? upperSetpoint : 0);
+        "Shooter/Upper/SetpointRotsPerSec",
+        (controlMode == ControlMode.Velocity) ? upperSetpoint : 0);
     Logger.recordOutput(
         "Shooter/Lower/SetpointVolts", (controlMode == ControlMode.Voltage) ? lowerSetpoint : 0);
     Logger.recordOutput(
-        "Shooter/Lower/SetpointRotsPerSec", (controlMode == ControlMode.Speed) ? lowerSetpoint : 0);
-
-    Logger.recordOutput("Shooter/AtSetpoint", atSetpoint());
+        "Shooter/Lower/SetpointRotsPerSec",
+        (controlMode == ControlMode.Velocity) ? lowerSetpoint : 0);
 
     // Update tunable numbers
     if (Constants.tuningMode) {
@@ -132,7 +99,7 @@ public class Shooter extends SubsystemBase {
         setPID();
       }
 
-      if (mmV.hasChanged(hashCode()) || mmA.hasChanged(hashCode())) {
+      if (mmA.hasChanged(hashCode())) {
         setMotionMagic();
       }
     }
@@ -156,16 +123,25 @@ public class Shooter extends SubsystemBase {
   }
 
   /**
-   * Set goal speed of the mechanism in degrees of elevation per second
+   * Set goal velocity of the mechanism in degrees of elevation per second
    *
-   * @param speed Goal speed
+   * @param velocity Goal velocity
    */
-  public void setSpeed(double upperSpeed, double lowerSpeed, int slot) {
+  public void setVelocity(double upperSpeed, double lowerSpeed) {
+    setVelocity(upperSpeed, 0, lowerSpeed, 0);
+  }
+
+  /**
+   * Set goal velocity of the mechanism in degrees of elevation per second
+   *
+   * @param velocity Goal velocity
+   */
+  public void setVelocity(double upperSpeed, int upperSlot, double lowerSpeed, int lowerSlot) {
     upperSetpoint = upperSpeed;
     lowerSetpoint = lowerSpeed;
-    controlMode = ControlMode.Speed;
-    upperIO.setSpeed(upperSpeed, slot);
-    lowerIO.setSpeed(lowerSpeed, slot);
+    controlMode = ControlMode.Velocity;
+    upperIO.setVelocity(upperSpeed, upperSlot);
+    lowerIO.setVelocity(lowerSpeed, lowerSlot);
   }
 
   /** Stop motor */
@@ -175,34 +151,12 @@ public class Shooter extends SubsystemBase {
     lowerIO.stop();
   }
 
-  private void setPID() {
-    SlotConfigs[] newconfig = new SlotConfigs[kP.length];
-    for (int i = 0; i < Math.min(newconfig.length, 3); i++) {
-      newconfig[i] =
-          new SlotConfigs()
-              .withKP(kP[i].getAsDouble())
-              .withKD(kD[i].getAsDouble())
-              .withKS(kS[i].getAsDouble());
-    }
-    upperIO.setPID(newconfig);
-    lowerIO.setPID(newconfig);
-  }
-
-  private void setMotionMagic() {
-    MotionMagicConfigs newconfig =
-        new MotionMagicConfigs()
-            .withMotionMagicCruiseVelocity(mmV.getAsDouble())
-            .withMotionMagicAcceleration(mmA.getAsDouble());
-    upperIO.setMotionMagic(newconfig);
-    lowerIO.setMotionMagic(newconfig);
-  }
-
   /**
    * Velocity of the mechanism in degrees of elevation per second
    *
    * @return Velocity
    */
-  public double getUpperSpeed() {
+  public double getUpperVelocity() {
     return upperInputs.velocityRotsPerSec;
   }
 
@@ -211,7 +165,7 @@ public class Shooter extends SubsystemBase {
    *
    * @return Velocity
    */
-  public double getLowerSpeed() {
+  public double getLowerVelocity() {
     return lowerInputs.velocityRotsPerSec;
   }
 
@@ -246,13 +200,48 @@ public class Shooter extends SubsystemBase {
    *
    * @return True if in speed control mode and mechanism is at goal speed, false otherwise
    */
+  @AutoLogOutput(key = "Shooter/AtBothSetpoints")
   public boolean atSetpoint() {
+    return upperAtVelocity() && lowerAtVelocity();
+  }
+
+  private void setPID() {
+    SlotConfigs[] newconfig = new SlotConfigs[kP.length];
+    for (int i = 0; i < Math.min(newconfig.length, 3); i++) {
+      newconfig[i] =
+          new SlotConfigs()
+              .withKP(kP[i].getAsDouble())
+              .withKD(kD[i].getAsDouble())
+              .withKS(kS[i].getAsDouble());
+    }
+    upperIO.setPID(newconfig);
+    lowerIO.setPID(newconfig);
+  }
+
+  private void setMotionMagic() {
+    MotionMagicConfigs newconfig =
+        new MotionMagicConfigs().withMotionMagicAcceleration(mmA.getAsDouble());
+    upperIO.setMotionMagic(newconfig);
+    lowerIO.setMotionMagic(newconfig);
+  }
+
+  @AutoLogOutput(key = "Shooter/Upper/AtSetpoint")
+  private boolean upperAtVelocity() {
     switch (controlMode) {
-      case Speed:
-        return (Math.abs(upperSetpoint - upperInputs.velocityRotsPerSec)
-                < setpointBandSpeed.getAsDouble()
-            && Math.abs(lowerSetpoint - lowerInputs.velocityRotsPerSec)
-                < setpointBandSpeed.getAsDouble());
+      case Velocity:
+        return Math.abs(upperSetpoint - upperInputs.velocityRotsPerSec)
+            < setpointBandSpeed.getAsDouble();
+      default:
+        return false;
+    }
+  }
+
+  @AutoLogOutput(key = "Shooter/Lower/AtSetpoint")
+  private boolean lowerAtVelocity() {
+    switch (controlMode) {
+      case Velocity:
+        return Math.abs(lowerSetpoint - lowerInputs.velocityRotsPerSec)
+            < setpointBandSpeed.getAsDouble();
       default:
         return false;
     }

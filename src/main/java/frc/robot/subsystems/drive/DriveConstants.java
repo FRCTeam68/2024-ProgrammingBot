@@ -12,48 +12,27 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.util.Units;
-import frc.robot.Constants;
 import lombok.Builder;
 
-public class DriveConstants {
-  public static final String canbus;
-  public static final double trackWidthX; // meters
-  public static final double trackWidthY; // meters
-  public static final double maxLinearSpeed; // meters/second
-  public static final double maxLinearAcceleration; // meters/second^2
-  public static final double wheelRadius; // meters
-  private static final double mass; // kilograms
-  private static final double moi; // kilograms*meters^2
+public final class DriveConstants {
+  // Hardware Configuration
+  public static final String canbus = "rio";
+  public static final double trackWidthX = Units.inchesToMeters(22.5); // meters
+  public static final double trackWidthY = Units.inchesToMeters(22.5); // meters
+  public static final double driveCurrentLimitAmps = 80;
+  public static final double turnCurrentLimitAmps = 40;
+  public static final double driveReduction = 8.142857142857142;
+  public static final double turnReduction = 21.428571428571427;
+  public static final double maxLinearVelocity = 4.85; // meters/second
+  public static final double maxLinearAcceleration = 22; // meters/second^2
+  public static final double wheelRadius = Units.inchesToMeters(2); // meters
+  private static final double mass = 68; // kilograms
+  private static final double moi = 1; // kilogram*meters^2
 
-  static {
-    switch (Constants.getRobot()) {
-      case DEVBOT -> {
-        canbus = "rio";
-        trackWidthX = Units.inchesToMeters(19.5);
-        trackWidthY = Units.inchesToMeters(22.5);
-        maxLinearSpeed = 4.0;
-        maxLinearAcceleration = 22.0;
-        wheelRadius = Units.inchesToMeters(2);
-        mass = 68;
-        moi = 1;
-      }
-      default -> {
-        canbus = "*";
-        trackWidthX = Units.inchesToMeters(19.5);
-        trackWidthY = Units.inchesToMeters(22.5);
-        maxLinearSpeed = 4.0;
-        maxLinearAcceleration = 22.0;
-        wheelRadius = Units.inchesToMeters(2);
-        mass = 68;
-        moi = 1;
-      }
-    }
-  }
-
+  // Derived values (No need to change)
   public static final double odometryFrequency = new CANBus(canbus).isNetworkFD() ? 250.0 : 100.0;
   public static final double driveBaseRadius = Math.hypot(trackWidthX / 2, trackWidthY / 2);
-  public static final double maxAngularSpeed = maxLinearSpeed / driveBaseRadius;
-
+  public static final double maxAngularVelocity = maxLinearVelocity / driveBaseRadius;
   public static final Translation2d[] moduleTranslations = {
     new Translation2d(trackWidthX / 2, trackWidthY / 2),
     new Translation2d(trackWidthX / 2, -trackWidthY / 2),
@@ -65,10 +44,10 @@ public class DriveConstants {
   public static final PIDConstants pidConstantsFast = new PIDConstants(5, 0.0, 0.0);
 
   // Autopilot configuration
-  public static final APProfile autoPilot =
+  public static final APProfile apConfig =
       new APProfile(
               new APConstraints()
-                  .withVelocity(maxLinearSpeed)
+                  .withVelocity(maxLinearVelocity)
                   .withAcceleration(maxLinearAcceleration)
                   .withJerk(2.0))
           .withErrorXY(Inches.of(3))
@@ -81,7 +60,12 @@ public class DriveConstants {
           mass,
           moi,
           new com.pathplanner.lib.config.ModuleConfig(
-              wheelRadius, maxLinearSpeed, 1, DCMotor.getKrakenX60Foc(1).withReduction(0), 0, 1),
+              wheelRadius,
+              maxLinearVelocity,
+              1,
+              DCMotor.getKrakenX60Foc(1).withReduction(driveReduction),
+              0,
+              1),
           moduleTranslations);
 
   public static final String[] moduleNames = {
@@ -91,7 +75,7 @@ public class DriveConstants {
     "module 3 (Back Right)"
   };
 
-  public static final ModuleConfig[] moduleConfigsComp = {
+  public static final ModuleConfig[] moduleConfigs = {
     // FL
     ModuleConfig.builder()
         .driveMotorId(1)
@@ -128,59 +112,6 @@ public class DriveConstants {
         .turnInverted(true)
         .encoderInverted(false)
         .build(),
-    // Spare
-    // This should only be used at a competition if the 5th module is needed
-    // To use this module modify the ecoder offest and swap the index used in RobotContainer
-    ModuleConfig.builder()
-        .driveMotorId(13)
-        .turnMotorId(14)
-        .encoderId(15)
-        // Modify encoder offset using the values below
-        // (FL +0) (FR +90) (BL +270) (BR +180)
-        // TODO: verify these numbers are correct
-        .encoderOffset(Rotation2d.fromDegrees(Units.rotationsToDegrees(0.0) + 0.0))
-        .turnInverted(true)
-        .encoderInverted(false)
-        .build()
-  };
-
-  public static final ModuleConfig[] moduleConfigsDev = {
-    // FL
-    ModuleConfig.builder()
-        .driveMotorId(1)
-        .turnMotorId(2)
-        .encoderId(3)
-        .encoderOffset(Rotation2d.fromDegrees(0.15234375))
-        .turnInverted(true)
-        .encoderInverted(false)
-        .build(),
-    // FR
-    ModuleConfig.builder()
-        .driveMotorId(4)
-        .turnMotorId(5)
-        .encoderId(6)
-        .encoderOffset(Rotation2d.fromDegrees(-0.4873046875))
-        .turnInverted(true)
-        .encoderInverted(false)
-        .build(),
-    // BL
-    ModuleConfig.builder()
-        .driveMotorId(7)
-        .turnMotorId(8)
-        .encoderId(9)
-        .encoderOffset(Rotation2d.fromDegrees(-0.219482421875))
-        .turnInverted(true)
-        .encoderInverted(false)
-        .build(),
-    // BR
-    ModuleConfig.builder()
-        .driveMotorId(10)
-        .turnMotorId(11)
-        .encoderId(12)
-        .encoderOffset(Rotation2d.fromDegrees(0.17236328125))
-        .turnInverted(true)
-        .encoderInverted(false)
-        .build()
   };
 
   public static class PigeonConstants {

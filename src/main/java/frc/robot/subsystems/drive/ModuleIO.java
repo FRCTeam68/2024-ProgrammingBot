@@ -26,7 +26,7 @@ public interface ModuleIO {
 
     public boolean turnEncoderConnected = false;
     public Rotation2d turnAbsolutePosition = new Rotation2d();
-    public MagnetHealthValue turnMagnetHealth = MagnetHealthValue.Magnet_Invalid;
+    public MagnetHealthValue turnEncoderMagnetHealth = MagnetHealthValue.Magnet_Invalid;
     public boolean turnEncoderSyncStickyFault = true;
 
     public double[] odometryTimestamps = new double[] {};

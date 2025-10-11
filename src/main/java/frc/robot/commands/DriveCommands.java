@@ -253,11 +253,11 @@ public class DriveCommands {
         .repeatedly();
   }
 
-  public static Command joystickDriveAtSpeaker(Drive drive, DoubleSupplier xSupplier, DoubleSupplier ySupplier) {
-    Translation2d speaker = AllianceFlipUtil.shouldFlip() ? FieldConstants.redSpeaker : FieldConstants.blueSpeaker;
-    return Commands.run(() -> {
-
-    });
+  public static Command joystickDriveAtSpeaker(
+      Drive drive, DoubleSupplier xSupplier, DoubleSupplier ySupplier) {
+    Translation2d speaker =
+        AllianceFlipUtil.shouldFlip() ? FieldConstants.redSpeaker : FieldConstants.blueSpeaker;
+    return Commands.run(() -> {});
   }
 
   /**

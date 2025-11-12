@@ -2,6 +2,7 @@ package frc.robot.subsystems.wrist;
 
 import com.ctre.phoenix6.configs.SlotConfigs;
 import edu.wpi.first.math.MathUtil;
+import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Translation3d;
@@ -10,8 +11,10 @@ import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
+import frc.robot.RobotState;
 import frc.robot.util.LoggedTunableNumber;
 import frc.robot.util.PhoenixUtil.ControlMode;
+import java.util.function.Supplier;
 import lombok.Getter;
 import org.littletonrobotics.junction.AutoLogOutput;
 import org.littletonrobotics.junction.Logger;
@@ -46,7 +49,11 @@ public class Wrist extends SubsystemBase {
 
   @Getter private ControlMode mode = ControlMode.Neutral;
 
-  public Wrist(WristIO io) {
+  Pose3d notePose = new Pose3d();
+  Supplier<Pose2d> drivePoseSupplier;
+
+  public Wrist(Supplier<Pose2d> drivePoseSupplier, WristIO io) {
+    this.drivePoseSupplier = drivePoseSupplier;
     this.io = io;
 
     zero(startingElevation);
@@ -69,6 +76,21 @@ public class Wrist extends SubsystemBase {
         new Pose3d(
             new Translation3d(-0.0153715466, 0, 0.2346029852),
             new Rotation3d(0, Units.degreesToRadians(-inputs.elevationDeg), 0)));
+
+    notePose =
+        new Pose3d(
+                drivePoseSupplier.get().getX() + 0.0192236344,
+                drivePoseSupplier.get().getY(),
+                0.3160213644,
+                new Rotation3d())
+            .rotateAround(
+                new Translation3d(drivePoseSupplier.get().getTranslation())
+                    .plus(new Translation3d(-0.0153715466, 0.0, 0.2346029852)),
+                new Rotation3d(0, Units.degreesToRadians(-inputs.elevationDeg), 0))
+            .rotateAround(
+                new Translation3d(drivePoseSupplier.get().getTranslation()),
+                new Rotation3d(drivePoseSupplier.get().getRotation()));
+    Logger.recordOutput("RobotPose/Note", RobotState.haveNote ? notePose : null);
 
     // Update tunable numbers
     if (Constants.tuningMode) {

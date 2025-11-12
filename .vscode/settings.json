@@ -69,6 +69,7 @@
   "[java]": {
     "editor.defaultFormatter": "richardwillis.vscode-spotless-gradle"
   },
-  "wpilib.selectDefaultSimulateExtension": true,
-  "wpilib.skipSelectSimulateExtension": true
+  "wpilib.selectDefaultSimulateExtension": false,
+  "wpilib.skipSelectSimulateExtension": false,
+  "wpilib.autoStartRioLog": false
 }

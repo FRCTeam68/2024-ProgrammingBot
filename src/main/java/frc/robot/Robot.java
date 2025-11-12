@@ -1,6 +1,8 @@
 package frc.robot;
 
 import com.ctre.phoenix6.SignalLogger;
+import com.pathplanner.lib.commands.FollowPathCommand;
+import com.pathplanner.lib.commands.PathfindingCommand;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Threads;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -8,6 +10,7 @@ import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import frc.robot.util.CANUtil;
 import frc.robot.util.LoggedTracer;
 import frc.robot.util.PhoenixUtil;
+import org.littletonrobotics.junction.AutoLogOutputManager;
 import org.littletonrobotics.junction.LogFileUtil;
 import org.littletonrobotics.junction.LoggedRobot;
 import org.littletonrobotics.junction.Logger;
@@ -28,7 +31,6 @@ public class Robot extends LoggedRobot {
   public Robot() {
     // Record metadata
     Logger.recordMetadata("TuningMode", Boolean.toString(Constants.tuningMode));
-    Logger.recordMetadata("Robot", "2024");
     Logger.recordMetadata("Mode", Constants.getMode().toString());
     Logger.recordMetadata("ProjectName", BuildConstants.MAVEN_NAME);
     Logger.recordMetadata("BuildDate", BuildConstants.BUILD_DATE);
@@ -66,7 +68,7 @@ public class Robot extends LoggedRobot {
         setUseTiming(false); // Run as fast as possible
         String logPath = LogFileUtil.findReplayLog();
         Logger.setReplaySource(new WPILOGReader(logPath));
-        Logger.addDataReceiver(new WPILOGWriter(LogFileUtil.addPathSuffix(logPath, "_sim")));
+        Logger.addDataReceiver(new WPILOGWriter(LogFileUtil.addPathSuffix(logPath, "_replay")));
         break;
     }
 
@@ -76,16 +78,23 @@ public class Robot extends LoggedRobot {
     // Start AdvantageKit logger
     // TODO: 2025 code has a comment sying this should be after RobotContainer. The template has it
     // before
+    AutoLogOutputManager.addObject(new RobotState());
     Logger.start();
 
-    // Instantiate our RobotContainer. This will perform all our button bindings.
-    robotContainer = new RobotContainer();
-
-    // Hoot logging
+    // CTRE Hoot logging
     // do not call the setPath and hoot log will be logged to rio at "/home/lvuser/logs"
     SignalLogger.enableAutoLogging(false);
     // SignalLogger.setPath("//media/sda1/logs");
     // SignalLogger.start();
+
+    // Instantiate our RobotContainer. This will perform all our button bindings.
+    robotContainer = new RobotContainer();
+
+    // Warmup pathplanner libraries
+    // This must be done after instantiate RobotContainer
+    // TODO: These are 2 different commands. Do we need both?
+    FollowPathCommand.warmupCommand().schedule();
+    PathfindingCommand.warmupCommand().schedule();
 
     // Threads.setCurrentThreadPriority(true, 1);
   }
@@ -109,12 +118,12 @@ public class Robot extends LoggedRobot {
     // This must be called from the robot's periodic block in order for anything in
     // the Command-based framework to work.
     CommandScheduler.getInstance().run();
-    LoggedTracer.record("Commands");
+    LoggedTracer.record("CommandScheduler");
 
     // Return to non-RT thread priority
     Threads.setCurrentThreadPriority(false, 10);
 
-    RobotContainer.controllerAlerts();
+    robotContainer.updateAlerts();
 
     CANUtil.logStatus();
 
@@ -131,7 +140,13 @@ public class Robot extends LoggedRobot {
 
   /** This function is called periodically when disabled. */
   @Override
-  public void disabledPeriodic() {}
+  public void disabledPeriodic() {
+    // Load PathPlanner paths from storage.
+    // This will only load before autonomous starts.
+    if (DriverStation.isAutonomous() || Constants.getMode() == Constants.Mode.SIM) {
+      robotContainer.loadAutonomousPath();
+    }
+  }
 
   /** This autonomous runs the autonomous command selected by your {@link RobotContainer} class. */
   @Override

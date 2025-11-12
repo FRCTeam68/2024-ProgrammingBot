@@ -5,14 +5,16 @@ import static frc.robot.util.PhoenixUtil.tryUntilOk;
 import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.configs.Slot0Configs;
-import com.ctre.phoenix6.configs.TalonFXConfiguration;
+import com.ctre.phoenix6.configs.TalonFXSConfiguration;
 import com.ctre.phoenix6.controls.NeutralOut;
 import com.ctre.phoenix6.controls.PositionVoltage;
 import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.hardware.ParentDevice;
-import com.ctre.phoenix6.hardware.TalonFX;
+import com.ctre.phoenix6.hardware.TalonFXS;
+import com.ctre.phoenix6.signals.AdvancedHallSupportValue;
 import com.ctre.phoenix6.signals.InvertedValue;
+import com.ctre.phoenix6.signals.MotorArrangementValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularVelocity;
@@ -21,13 +23,13 @@ import edu.wpi.first.units.measure.Temperature;
 import edu.wpi.first.units.measure.Voltage;
 import frc.robot.util.PhoenixUtil;
 
-/** Generic roller IO implementation for a roller or series of rollers using a TalonFX. */
-public class RollerSystemIOTalonFX implements RollerSystemIO {
+/** Generic roller IO implementation for a roller or series of rollers using a minion motor. */
+public class RollerSystemIOTalonFXS implements RollerSystemIO {
   // Hardware
-  private final TalonFX talon;
+  private final TalonFXS talon;
 
   // Configuration
-  private final TalonFXConfiguration config = new TalonFXConfiguration();
+  private final TalonFXSConfiguration config = new TalonFXSConfiguration();
 
   // Status Signals
   private final StatusSignal<Angle> position;
@@ -58,17 +60,23 @@ public class RollerSystemIOTalonFX implements RollerSystemIO {
    * @param reduction The ratio of motor to mechanism rotations, where a ratio greater than 1 is a
    *     reduction.
    */
-  public RollerSystemIOTalonFX(
+  public RollerSystemIOTalonFXS(
       int id,
       String canbus,
       int currentLimitAmps,
       InvertedValue invertedValue,
       NeutralModeValue neutralModeValue,
-      double reduction) {
-    talon = new TalonFX(id, canbus);
+      double reduction,
+      MotorArrangementValue motor) {
+    talon = new TalonFXS(id, canbus);
 
     // TODO: should we intially set pid to zero. need to do this if they are saved on the device.
     // Configure Motor
+    config.Commutation.MotorArrangement = motor;
+    config.Commutation.AdvancedHallSupport =
+        (motor == MotorArrangementValue.Brushed_DC)
+            ? AdvancedHallSupportValue.Disabled
+            : AdvancedHallSupportValue.Enabled;
     config.MotorOutput.Inverted = invertedValue;
     config.MotorOutput.NeutralMode = neutralModeValue;
     // Current limits
@@ -78,7 +86,7 @@ public class RollerSystemIOTalonFX implements RollerSystemIO {
     config.CurrentLimits.SupplyCurrentLowerTime = 1;
     config.CurrentLimits.SupplyCurrentLowerLimit = 40;
     // Feedback
-    config.Feedback.SensorToMechanismRatio = reduction;
+    config.ExternalFeedback.SensorToMechanismRatio = reduction;
     tryUntilOk(5, () -> talon.getConfigurator().apply(config, 0.25));
 
     position = talon.getPosition();

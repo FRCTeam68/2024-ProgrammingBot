@@ -19,15 +19,21 @@ public final class DriveConstants {
   public static final String canbus = "rio";
   public static final double trackWidthX = Units.inchesToMeters(22.5); // meters
   public static final double trackWidthY = Units.inchesToMeters(22.5); // meters
-  public static final double driveCurrentLimitAmps = 80;
-  public static final double turnCurrentLimitAmps = 40;
   public static final double driveReduction = 8.142857142857142;
   public static final double turnReduction = 21.428571428571427;
   public static final double maxLinearVelocity = 4.85; // meters/second
-  public static final double maxLinearAcceleration = 22; // meters/second^2
   public static final double wheelRadius = Units.inchesToMeters(2); // meters
   private static final double mass = 68; // kilograms
   private static final double moi = 1; // kilogram*meters^2
+
+  // Control Configuration
+  // TODO: do we want to limit torque, stator, and or supply current
+  // public static final double driveTorqueCurrentLimit = 80; // amps
+  // public static final double driveSupplyCurrentLimit = 80; // amps
+  // public static final double turnSupplyCurrentLimit = 40; // amps
+  public static final double driveCurrentLimitAmps = 80; // amps
+  public static final double turnCurrentLimitAmps = 40; // amps
+  public static final double maxLinearAcceleration = 22; // meters/second^2
 
   // Derived values (No need to change)
   public static final double odometryFrequency = new CANBus(canbus).isNetworkFD() ? 250.0 : 100.0;
@@ -41,7 +47,8 @@ public final class DriveConstants {
   };
 
   // Simple profiled PID configuration
-  public static final PIDConstants pidConstantsFast = new PIDConstants(5, 0.0, 0.0);
+  public static final PIDConstants translationPID = new PIDConstants(5, 0.0, 0.0);
+  public static final PIDConstants rotationPID = new PIDConstants(5, 0.0, 0.0);
 
   // Autopilot configuration
   public static final APProfile apConfig =
@@ -64,7 +71,7 @@ public final class DriveConstants {
               maxLinearVelocity,
               1,
               DCMotor.getKrakenX60Foc(1).withReduction(driveReduction),
-              0,
+              driveCurrentLimitAmps,
               1),
           moduleTranslations);
 
@@ -76,7 +83,7 @@ public final class DriveConstants {
   };
 
   public static final ModuleConfig[] moduleConfigs = {
-    // FL
+    // Module 0 (Front Left)
     ModuleConfig.builder()
         .driveMotorId(1)
         .turnMotorId(2)
@@ -85,7 +92,7 @@ public final class DriveConstants {
         .turnInverted(true)
         .encoderInverted(false)
         .build(),
-    // FR
+    // Module 1 (Front Right)
     ModuleConfig.builder()
         .driveMotorId(3)
         .turnMotorId(4)
@@ -94,7 +101,7 @@ public final class DriveConstants {
         .turnInverted(true)
         .encoderInverted(false)
         .build(),
-    // BL
+    // Module 2 (Back Left)
     ModuleConfig.builder()
         .driveMotorId(5)
         .turnMotorId(6)
@@ -103,7 +110,7 @@ public final class DriveConstants {
         .turnInverted(true)
         .encoderInverted(false)
         .build(),
-    // BR
+    // Module 3 (Back Right)
     ModuleConfig.builder()
         .driveMotorId(7)
         .turnMotorId(8)
@@ -114,7 +121,7 @@ public final class DriveConstants {
         .build(),
   };
 
-  public static class PigeonConstants {
+  public static class GyroConstants {
     public static final int id = 50;
   }
 

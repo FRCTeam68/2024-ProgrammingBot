@@ -33,7 +33,7 @@ import frc.robot.util.PhoenixUtil;
 import lombok.Getter;
 
 /** Generic roller IO implementation for a roller or series of rollers using a Kraken. */
-public class WristIOTalonFX implements WristIO {
+public class WristIOReal implements WristIO {
   @Getter private static final double reduction = 5 * (64 / 18);
   private final GravityTypeValue gravityType = GravityTypeValue.Arm_Cosine;
 
@@ -66,7 +66,7 @@ public class WristIOTalonFX implements WristIO {
   private final MotionMagicTorqueCurrentFOC positionOut = new MotionMagicTorqueCurrentFOC(0);
   private final NeutralOut neutralOut = new NeutralOut();
 
-  public WristIOTalonFX() {
+  public WristIOReal() {
     talon = new TalonFX(33, "rio");
     followerTalon = new TalonFX(32, "rio");
     followerTalon.setControl(new Follower(talon.getDeviceID(), true));

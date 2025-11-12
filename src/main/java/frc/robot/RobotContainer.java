@@ -9,25 +9,31 @@ import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandPS4Controller;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import frc.robot.commands.DriveCommands;
+import frc.robot.commands.auton.AutonCommands;
 import frc.robot.subsystems.NoteVisualizer;
-import frc.robot.subsystems.Shooter;
 import frc.robot.subsystems.drive.Drive;
 import frc.robot.subsystems.drive.DriveConstants;
 import frc.robot.subsystems.drive.GyroIO;
 import frc.robot.subsystems.drive.GyroIOPigeon2;
 import frc.robot.subsystems.drive.ModuleIO;
-import frc.robot.subsystems.drive.ModuleIOComp;
+import frc.robot.subsystems.drive.ModuleIOReal;
 import frc.robot.subsystems.drive.ModuleIOSim;
 import frc.robot.subsystems.rollers.RollerSystem;
 import frc.robot.subsystems.rollers.RollerSystemIO;
 import frc.robot.subsystems.rollers.RollerSystemIOSim;
 import frc.robot.subsystems.rollers.RollerSystemIOTalonFX;
 import frc.robot.subsystems.sensors.NoteSensor;
+import frc.robot.subsystems.shooter.Shooter;
+import frc.robot.subsystems.shooter.ShooterIO;
+import frc.robot.subsystems.shooter.ShooterIOReal;
+import frc.robot.subsystems.shooter.ShooterIOSim;
 import frc.robot.subsystems.vision.Vision;
 import frc.robot.subsystems.vision.VisionConstants;
 import frc.robot.subsystems.vision.VisionIO;
@@ -35,9 +41,12 @@ import frc.robot.subsystems.vision.VisionIO.CameraType;
 import frc.robot.subsystems.vision.VisionIOLimelight;
 import frc.robot.subsystems.wrist.Wrist;
 import frc.robot.subsystems.wrist.WristIO;
+import frc.robot.subsystems.wrist.WristIOReal;
 import frc.robot.subsystems.wrist.WristIOSim;
-import frc.robot.subsystems.wrist.WristIOTalonFX;
 import frc.robot.util.AllianceFlipUtil;
+import frc.robot.util.AutonConfig;
+import frc.robot.util.AutonConfig.AutonSequence;
+import frc.robot.util.FollowPathUtil;
 import org.littletonrobotics.junction.networktables.LoggedDashboardChooser;
 
 /**
@@ -59,19 +68,23 @@ public class RobotContainer {
   private NoteVisualizer noteVisualizer;
 
   // Controllers
-  private static final CommandXboxController driverController = new CommandXboxController(0);
-  private static final CommandPS4Controller operatorController = new CommandPS4Controller(1);
+  private final CommandXboxController driverController = new CommandXboxController(0);
+  private final CommandPS4Controller operatorController = new CommandPS4Controller(1);
 
   // Alerts
-  private static final Alert driverControllerDisconnectedAlert =
+  private final Alert driverControllerDisconnectedAlert =
       new Alert("Driver Xbox controller disconnected.", AlertType.kError);
-  private static final Alert operatorControllerDisconnectedAlert =
+  private final Alert operatorControllerDisconnectedAlert =
       new Alert("Operator PS4 controller disconnected.", AlertType.kError);
-  private static final Alert noAutoSelectedAlert =
-      new Alert("Please select an auton.", AlertType.kWarning);
+  private final Alert noAutoSelectedAlert =
+      new Alert("No autonomous selected.", AlertType.kWarning);
+  private final Alert startingPoseAlert =
+      new Alert(
+          "Current robot pose is too far from starting pose for selected auton. Possible causes include the incorrect auton is selected, the camera is not getting a clear view of an april tag, or the robot is in the wrong location.",
+          AlertType.kError);
 
   // Dashboard inputs
-  private final LoggedDashboardChooser<Command> autoChooser;
+  private final LoggedDashboardChooser<AutonConfig> autonChooser;
 
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
   public RobotContainer() {
@@ -80,10 +93,10 @@ public class RobotContainer {
         drive =
             new Drive(
                 new GyroIOPigeon2(),
-                new ModuleIOComp(DriveConstants.moduleConfigs[0]),
-                new ModuleIOComp(DriveConstants.moduleConfigs[1]),
-                new ModuleIOComp(DriveConstants.moduleConfigs[2]),
-                new ModuleIOComp(DriveConstants.moduleConfigs[3]));
+                new ModuleIOReal(DriveConstants.moduleConfigs[0]),
+                new ModuleIOReal(DriveConstants.moduleConfigs[1]),
+                new ModuleIOReal(DriveConstants.moduleConfigs[2]),
+                new ModuleIOReal(DriveConstants.moduleConfigs[3]));
 
         vision =
             new Vision(
@@ -93,19 +106,12 @@ public class RobotContainer {
                 new VisionIOLimelight(
                     CameraType.LL_2, VisionConstants.LL2Name, drive::getRotation));
 
-        wrist = new Wrist(new WristIOTalonFX());
+        wrist = new Wrist(drive::getPose, new WristIOReal());
 
         shooter =
             new Shooter(
-                new RollerSystemIOTalonFX(
-                    20, "rio", 80, InvertedValue.Clockwise_Positive, NeutralModeValue.Coast, 1),
-                new RollerSystemIOTalonFX(
-                    21,
-                    "rio",
-                    80,
-                    InvertedValue.CounterClockwise_Positive,
-                    NeutralModeValue.Coast,
-                    1));
+                new ShooterIOReal(InvertedValue.Clockwise_Positive),
+                new ShooterIOReal(InvertedValue.CounterClockwise_Positive));
 
         intake =
             new RollerSystem(
@@ -135,12 +141,9 @@ public class RobotContainer {
 
         vision = new Vision(drive::addVisionMeasurement, drive::getPose, drive::getFieldVelocity);
 
-        wrist = new Wrist(new WristIOSim());
+        wrist = new Wrist(drive::getPose, new WristIOSim());
 
-        shooter =
-            new Shooter(
-                new RollerSystemIOSim(DCMotor.getFalcon500Foc(1), 1, 0.1),
-                new RollerSystemIOSim(DCMotor.getFalcon500Foc(1), 1, 0.1));
+        shooter = new Shooter(new ShooterIOSim(), new ShooterIOSim());
 
         intake =
             new RollerSystem("Intake", new RollerSystemIOSim(DCMotor.getFalcon500Foc(1), 1, .3));
@@ -168,9 +171,9 @@ public class RobotContainer {
                 drive::getFieldVelocity,
                 new VisionIO() {});
 
-        wrist = new Wrist(new WristIO() {});
+        wrist = new Wrist(drive::getPose, new WristIO() {});
 
-        shooter = new Shooter(new RollerSystemIO() {}, new RollerSystemIO() {});
+        shooter = new Shooter(new ShooterIO() {}, new ShooterIO() {});
 
         intake = new RollerSystem("Intake", new RollerSystemIO() {});
 
@@ -180,21 +183,21 @@ public class RobotContainer {
       }
     }
 
-    intake.setPID(new SlotConfigs().withKP(5).withKD(0).withKS(0));
+    intake.initPID(new SlotConfigs().withKP(5).withKD(0).withKS(0));
 
-    feederLower.setPID(new SlotConfigs().withKP(10).withKD(0).withKS(0));
+    feederLower.initPID(new SlotConfigs().withKP(10).withKD(0).withKS(0));
 
-    feederUpper.setPID(new SlotConfigs().withKP(15).withKD(0).withKS(0));
+    feederUpper.initPID(new SlotConfigs().withKP(15).withKD(0).withKS(0));
 
     noteSensor = new NoteSensor();
 
-    noteVisualizer = new NoteVisualizer(drive::getPose, wrist::getPosition, noteSensor::isHaveNote);
+    noteVisualizer = new NoteVisualizer(drive::getPose, wrist::getPosition, noteSensor::isDetected);
 
-    // Set up auto routines
-    autoChooser = new LoggedDashboardChooser<>("Auto Chooser");
-
-    // Set up auto routines
-    autoChooser.addOption("None", Commands.none());
+    // Set up dashboard auto chooser
+    autonChooser = new LoggedDashboardChooser<>("Auto Chooser");
+    autonChooser.addDefaultOption("NONE", null);
+    autonChooser.addOption(
+        "Center Close", new AutonConfig(AutonSequence.Center, "Center Start-Close Right"));
 
     // Configure the button bindings
     configureButtonBindings();
@@ -209,6 +212,18 @@ public class RobotContainer {
             () -> -driverController.getLeftY(),
             () -> -driverController.getLeftX(),
             () -> -driverController.getRightX()));
+
+    driverController
+        .start()
+        .onTrue(
+            Commands.runOnce(
+                () ->
+                    drive.setPose(
+                        new Pose2d(
+                            drive.getPose().getTranslation(),
+                            AllianceFlipUtil.shouldFlip()
+                                ? new Rotation2d()
+                                : new Rotation2d(Math.PI)))));
 
     driverController
         .leftTrigger()
@@ -249,7 +264,7 @@ public class RobotContainer {
                                 drive.getPose().getTranslation(),
                                 AllianceFlipUtil.apply(new Rotation2d(0)))))
                 .ignoringDisable(true));
-    driverController.start().onTrue(stopSubsystems().ignoringDisable(true));
+    driverController.start().onTrue(Commands.runOnce(() -> stopSubsystems()));
   }
 
   /**
@@ -258,27 +273,59 @@ public class RobotContainer {
    * @return the command to run in autonomous
    */
   public Command getAutonomousCommand() {
-    return autoChooser.get();
+    return AutonCommands.autonCommand(
+        drive, wrist, shooter, intake, feederLower, feederUpper, noteSensor, autonChooser.get());
   }
 
-  public Command stopSubsystems() {
-    return Commands.runOnce(
-        () -> {
-          shooter.stop();
-          wrist.stop();
-          intake.stop();
-          feederLower.stop();
-          feederUpper.stop();
-        },
-        shooter,
-        wrist,
-        intake,
-        feederLower,
-        feederUpper);
+  /** Loads autonomous paths from storage. This method can be safely be called periodically. */
+  public void loadAutonomousPath() {
+    FollowPathUtil.loadPathFromList(
+        autonChooser.get() != null ? autonChooser.get().pathNames : null);
   }
 
-  public static void controllerAlerts() {
+  /** Stops all subsystems and cancels any scheduled commands. */
+  public void stopSubsystems() {
+    CommandScheduler.getInstance().cancelAll();
+    drive.stop();
+    shooter.stop();
+    wrist.stop();
+    intake.stop();
+    feederLower.stop();
+    feederUpper.stop();
+  }
+
+  /**
+   * Alerts always active:
+   *
+   * <ul>
+   *   <li>Controllers disconnected
+   * </ul>
+   *
+   * Alerts only active while in autonomous and disabled:
+   *
+   * <ul>
+   *   <li>No autonomous selected
+   *   <li>Current pose does not match autonomous starting pose
+   * </ul>
+   */
+  public void updateAlerts() {
     driverControllerDisconnectedAlert.set(!driverController.isConnected());
     operatorControllerDisconnectedAlert.set(!operatorController.isConnected());
+
+    if (DriverStation.isAutonomous() && DriverStation.isDisabled()) {
+      noAutoSelectedAlert.set(autonChooser.get() == null);
+      startingPoseAlert.set(
+          autonChooser.get() != null
+              && (FollowPathUtil.getStartingPose().minus(drive.getPose()).getTranslation().getNorm()
+                      > 0.25
+                  || FollowPathUtil.getStartingPose()
+                          .minus(drive.getPose())
+                          .getRotation()
+                          .getDegrees()
+                      > 20));
+    } else {
+      noAutoSelectedAlert.set(false);
+      startingPoseAlert.set(false);
+    }
   }
 }

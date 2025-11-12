@@ -1,4 +1,4 @@
-package frc.robot.subsystems;
+package frc.robot.subsystems.shooter;
 
 import com.ctre.phoenix6.configs.MotionMagicConfigs;
 import com.ctre.phoenix6.configs.SlotConfigs;
@@ -6,8 +6,6 @@ import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
-import frc.robot.subsystems.rollers.RollerSystemIO;
-import frc.robot.subsystems.rollers.RollerSystemIOInputsAutoLogged;
 import frc.robot.util.LoggedTunableNumber;
 import frc.robot.util.PhoenixUtil.ControlMode;
 import lombok.Getter;
@@ -15,10 +13,10 @@ import org.littletonrobotics.junction.AutoLogOutput;
 import org.littletonrobotics.junction.Logger;
 
 public class Shooter extends SubsystemBase {
-  private final RollerSystemIO upperIO;
-  private final RollerSystemIO lowerIO;
-  protected final RollerSystemIOInputsAutoLogged upperInputs = new RollerSystemIOInputsAutoLogged();
-  protected final RollerSystemIOInputsAutoLogged lowerInputs = new RollerSystemIOInputsAutoLogged();
+  private final ShooterIO upperIO;
+  private final ShooterIO lowerIO;
+  protected final ShooterIOInputsAutoLogged upperInputs = new ShooterIOInputsAutoLogged();
+  protected final ShooterIOInputsAutoLogged lowerInputs = new ShooterIOInputsAutoLogged();
 
   // Alerts
   private final Alert upperDisconnectedAlert =
@@ -62,7 +60,7 @@ public class Shooter extends SubsystemBase {
 
   @Getter private ControlMode controlMode = ControlMode.Neutral;
 
-  public Shooter(RollerSystemIO lowerIO, RollerSystemIO upperIO) {
+  public Shooter(ShooterIO lowerIO, ShooterIO upperIO) {
     this.upperIO = upperIO;
     this.lowerIO = lowerIO;
   }

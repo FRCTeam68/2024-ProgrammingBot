@@ -1,6 +1,6 @@
-package frc.robot.subsystems.rollers;
+package frc.robot.subsystems.shooter;
 
-import com.ctre.phoenix6.configs.Slot0Configs;
+import com.ctre.phoenix6.configs.SlotConfigs;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.system.plant.DCMotor;
@@ -10,34 +10,28 @@ import edu.wpi.first.wpilibj.simulation.DCMotorSim;
 import frc.robot.Constants;
 import frc.robot.util.PhoenixUtil.ControlMode;
 
-public class RollerSystemIOSim implements RollerSystemIO {
+public class ShooterIOSim implements ShooterIO {
+  private final DCMotor motor = DCMotor.getFalcon500Foc(1);
   private final DCMotorSim sim;
   private final PIDController controller = new PIDController(0, 0, 0);
 
-  private Slot0Configs slotConfig = new Slot0Configs();
+  private SlotConfigs[] slotConfigs = new SlotConfigs[3];
   private ControlMode mode = ControlMode.Neutral;
   private double appliedVoltage = 0;
 
-  /**
-   * @param motor The motor (or gearbox) attached to system.
-   * @param reduction The ratio of motor to mechanism rotations, where a ratio greater than 1 is a
-   *     reduction.
-   * @param moi The moment of inertia of the roller. This can be roughly calculated from the CAD.
-   *     Units are in JKgMetersSquared.
-   */
-  public RollerSystemIOSim(DCMotor motor, double reduction, double moi) {
-    sim = new DCMotorSim(LinearSystemId.createDCMotorSystem(motor, moi, reduction), motor);
+  public ShooterIOSim() {
+    sim =
+        new DCMotorSim(
+            LinearSystemId.createDCMotorSystem(motor, .1, ShooterIOReal.getReduction()), motor);
   }
 
   @Override
-  public void updateInputs(RollerSystemIOInputs inputs) {
+  public void updateInputs(ShooterIOInputs inputs) {
     if (DriverStation.isDisabled()) {
-      setVolts(0);
+      setVolts(0.0);
     } else {
       if (mode == ControlMode.Velocity) {
         setInputVoltage(controller.calculate(sim.getAngularVelocityRPM() / 60.0));
-      } else if (mode == ControlMode.Position) {
-        setInputVoltage(controller.calculate(sim.getAngularPositionRotations()));
       }
     }
 
@@ -58,22 +52,14 @@ public class RollerSystemIOSim implements RollerSystemIO {
   }
 
   @Override
-  public void setVelocity(double velocity) {
+  public void setVelocity(double velocity, int slot) {
     mode = ControlMode.Velocity;
-    controller.setPID(slotConfig.kP, slotConfig.kI, slotConfig.kD);
+    controller.setPID(slotConfigs[slot].kP, slotConfigs[slot].kI, slotConfigs[slot].kD);
     controller.setSetpoint(velocity);
   }
 
   @Override
-  public void setPosition(double position) {
-    mode = ControlMode.Position;
-    controller.setPID(slotConfig.kP, slotConfig.kI, slotConfig.kD);
-    controller.setSetpoint(position);
-  }
-
-  @Override
   public void stop() {
-    mode = ControlMode.Neutral;
     setVolts(0);
   }
 
@@ -83,8 +69,10 @@ public class RollerSystemIOSim implements RollerSystemIO {
   }
 
   @Override
-  public void setPID(Slot0Configs newConfig) {
-    slotConfig = newConfig;
+  public void setPID(SlotConfigs... newConfig) {
+    for (int i = 0; i < Math.min(newConfig.length, 3); i++) {
+      slotConfigs[i] = newConfig[i];
+    }
   }
 
   private void setInputVoltage(double volts) {

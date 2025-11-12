@@ -1,5 +1,6 @@
 package frc.robot.subsystems.rollers;
 
+import com.ctre.phoenix6.configs.Slot0Configs;
 import com.ctre.phoenix6.configs.SlotConfigs;
 import edu.wpi.first.math.filter.Debouncer;
 import edu.wpi.first.math.filter.Debouncer.DebounceType;
@@ -21,9 +22,9 @@ public class RollerSystem extends SubsystemBase {
   private final Alert disconnectedAlert;
   private final Alert tempAlert;
 
-  private LoggedTunableNumber rollerkP;
-  private LoggedTunableNumber rollerkD;
-  private LoggedTunableNumber rollerkS;
+  private LoggedTunableNumber kP;
+  private LoggedTunableNumber kD;
+  private LoggedTunableNumber kS;
 
   @Getter private double setpoint = 0.0;
 
@@ -33,12 +34,12 @@ public class RollerSystem extends SubsystemBase {
     this.name = name;
     this.io = io;
 
-    rollerkP = new LoggedTunableNumber(name + "/kP");
-    rollerkD = new LoggedTunableNumber(name + "/kD");
-    rollerkS = new LoggedTunableNumber(name + "/kS");
+    kP = new LoggedTunableNumber(name + "/kP");
+    kD = new LoggedTunableNumber(name + "/kD");
+    kS = new LoggedTunableNumber(name + "/kS");
 
     disconnectedAlert = new Alert(name + " motor disconnected!", AlertType.kError);
-    tempAlert = new Alert(name + "motor is too hot!", AlertType.kWarning);
+    tempAlert = new Alert(name + " motor is too hot.", AlertType.kWarning);
   }
 
   public void periodic() {
@@ -48,31 +49,27 @@ public class RollerSystem extends SubsystemBase {
     tempAlert.set(inputs.tempCelsius > Constants.warningTempCelsius);
 
     Logger.recordOutput(name + "/SetpointVolts", (mode == ControlMode.Voltage) ? setpoint : 0);
-    Logger.recordOutput(name + "/SetpointRotPerSec", (mode == ControlMode.Velocity) ? setpoint : 0);
     Logger.recordOutput(
-        name + "/SetpointPositionDeg", (mode == ControlMode.Position) ? setpoint : 0);
+        name + "/SetpointRotsPerSec", (mode == ControlMode.Velocity) ? setpoint : 0);
+    Logger.recordOutput(
+        name + "/SetpointPositionRots", (mode == ControlMode.Position) ? setpoint : 0);
 
     // TODO: do we always check this. we wouldn't need to call set pid in rollersystem
     // Update tunable numbers
-    if (Constants.tuningMode) {
-      if (rollerkP.hasChanged(hashCode())
-          || rollerkD.hasChanged(hashCode())
-          || rollerkS.hasChanged(hashCode())) {
-        io.setPID(
-            new SlotConfigs()
-                .withKP(rollerkP.getAsDouble())
-                .withKD(rollerkD.getAsDouble())
-                .withKS(rollerkS.getAsDouble()));
-      }
+    if (kP.hasChanged(hashCode()) || kD.hasChanged(hashCode()) || kS.hasChanged(hashCode())) {
+      io.setPID(
+          new Slot0Configs()
+              .withKP(kP.getAsDouble())
+              .withKD(kD.getAsDouble())
+              .withKS(kS.getAsDouble()));
     }
   }
 
   /** Must call this once and only once in robotcontainer after each RollerSystem is created */
-  public void setPID(SlotConfigs newConfig) {
-    rollerkP.initDefault(newConfig.kP);
-    rollerkD.initDefault(newConfig.kD);
-    rollerkS.initDefault(newConfig.kS);
-    io.setPID(newConfig);
+  public void initPID(SlotConfigs newConfig) {
+    kP.initDefault(newConfig.kP);
+    kD.initDefault(newConfig.kD);
+    kS.initDefault(newConfig.kS);
   }
 
   /** Run roller at volts */
@@ -90,7 +87,7 @@ public class RollerSystem extends SubsystemBase {
   public void setVelocity(double velocity) {
     setpoint = velocity;
     mode = ControlMode.Velocity;
-    io.setVelocity(velocity, 0);
+    io.setVelocity(velocity);
   }
 
   /**
@@ -101,7 +98,7 @@ public class RollerSystem extends SubsystemBase {
   public void setPosition(double position) {
     setpoint = position;
     mode = ControlMode.Position;
-    io.setPosition(position, 0);
+    io.setPosition(position);
   }
 
   /** Stop roller */

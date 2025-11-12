@@ -51,7 +51,7 @@ public class Module {
 
   private final ModuleIO io;
   private final ModuleIOInputsAutoLogged inputs = new ModuleIOInputsAutoLogged();
-  private final int index;
+  private final String inputsKey;
 
   // Connected debouncers
   private final Debouncer driveMotorConnectedDebouncer = new Debouncer(0.5, DebounceType.kFalling);
@@ -69,48 +69,63 @@ public class Module {
 
   public Module(ModuleIO io, int index) {
     this.io = io;
-    this.index = index;
     driveDisconnectedAlert =
         new Alert(
-            "Disconnected drive motor on " + DriveConstants.moduleNames[index] + ".",
+            "Disconnected drive motor on drive " + DriveConstants.moduleNames[index] + "!",
             AlertType.kError);
     turnDisconnectedAlert =
         new Alert(
-            "Disconnected turn motor on " + DriveConstants.moduleNames[index] + ".",
+            "Disconnected turn motor on drive " + DriveConstants.moduleNames[index] + "!",
             AlertType.kError);
     turnEncoderDisconnectedAlert =
         new Alert(
-            "Disconnected turn encoder on " + DriveConstants.moduleNames[index] + ".",
+            "Disconnected turn encoder on drive " + DriveConstants.moduleNames[index] + "!",
             AlertType.kError);
     driveTempAlert =
         new Alert(
-            "Drive motor too hot on " + DriveConstants.moduleNames[index] + ".",
+            "Drive motor too hot on drive " + DriveConstants.moduleNames[index] + ".",
             AlertType.kWarning);
     turnTempAlert =
         new Alert(
-            "Turn motor too hot on " + DriveConstants.moduleNames[index] + ".", AlertType.kWarning);
+            "Turn motor too hot on drive " + DriveConstants.moduleNames[index] + ".",
+            AlertType.kWarning);
+    inputsKey =
+        "Drive/" + DriveConstants.moduleNames[index].replace(" ", "").replaceFirst("m", "M");
+
+    io.setDrivePID(
+        new Slot0Configs()
+            .withKS(drivekS.get())
+            .withKV(drivekV.get())
+            .withKP(drivekP.get())
+            .withKD(drivekD.get()));
+    io.setTurnPID(
+        new Slot0Configs().withKS(turnkS.get()).withKP(turnkP.get()).withKD(turnkD.get()));
   }
 
   public void updateInputs() {
     io.updateInputs(inputs);
-    Logger.processInputs(
-        "Drive/" + DriveConstants.moduleNames[index].replace(" ", "").replaceFirst("m", "M"),
-        inputs);
+    Logger.processInputs(inputsKey, inputs);
   }
 
   public void periodic() {
-    if (drivekP.hasChanged(hashCode()) || drivekD.hasChanged(hashCode())) {
-      io.setDrivePID(
-          new Slot0Configs().withKP(drivekP.getAsDouble()).withKD(drivekD.getAsDouble()));
-    }
-    if (turnkS.hasChanged(hashCode())
-        || turnkP.hasChanged(hashCode())
-        || turnkD.hasChanged(hashCode())) {
-      io.setTurnPID(
-          new Slot0Configs()
-              .withKS(turnkS.getAsDouble())
-              .withKP(turnkP.getAsDouble())
-              .withKD(turnkD.getAsDouble()));
+    if (Constants.tuningMode) {
+      if (drivekS.hasChanged(hashCode())
+          || drivekV.hasChanged(hashCode())
+          || drivekP.hasChanged(hashCode())
+          || drivekD.hasChanged(hashCode())) {
+        io.setDrivePID(
+            new Slot0Configs()
+                .withKS(drivekS.get())
+                .withKV(drivekV.get())
+                .withKP(drivekP.get())
+                .withKD(drivekD.get()));
+      }
+      if (turnkS.hasChanged(hashCode())
+          || turnkP.hasChanged(hashCode())
+          || turnkD.hasChanged(hashCode())) {
+        io.setTurnPID(
+            new Slot0Configs().withKS(turnkS.get()).withKP(turnkP.get()).withKD(turnkD.get()));
+      }
     }
 
     // Calculate positions for odometry

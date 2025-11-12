@@ -29,7 +29,7 @@ import frc.robot.subsystems.drive.DriveConstants.ModuleConfig;
 import frc.robot.util.PhoenixUtil;
 import java.util.Queue;
 
-public class ModuleIOComp implements ModuleIO {
+public class ModuleIOReal implements ModuleIO {
   // Hardware objects
   private final TalonFX driveTalon;
   private final TalonFX turnTalon;
@@ -73,7 +73,7 @@ public class ModuleIOComp implements ModuleIO {
   private final StatusSignal<Boolean> turnEncoderSyncStickyFault;
 
   @SuppressWarnings("unused")
-  public ModuleIOComp(ModuleConfig constants) {
+  public ModuleIOReal(ModuleConfig constants) {
     driveTalon = new TalonFX(constants.driveMotorId(), DriveConstants.canbus);
     turnTalon = new TalonFX(constants.turnMotorId(), DriveConstants.canbus);
     cancoder = new CANcoder(constants.encoderId(), DriveConstants.canbus);
@@ -138,8 +138,6 @@ public class ModuleIOComp implements ModuleIO {
     driveTempCelsius = driveTalon.getDeviceTemp();
 
     // Create turn status signals
-    turnAbsolutePosition = cancoder.getAbsolutePosition();
-    turnMagnetHealth = cancoder.getMagnetHealth();
     turnPosition = turnTalon.getPosition();
     turnPositionQueue =
         PhoenixOdometryThread.getInstance().registerSignal(turnTalon.getPosition().clone());
@@ -150,6 +148,10 @@ public class ModuleIOComp implements ModuleIO {
     turnTempCelsius = turnTalon.getDeviceTemp();
     turnEncoderSyncStickyFault = turnTalon.getStickyFault_FusedSensorOutOfSync();
 
+    // Create encoder status signals
+    turnAbsolutePosition = cancoder.getAbsolutePosition();
+    turnMagnetHealth = cancoder.getMagnetHealth();
+
     // Configure periodic frames
     BaseStatusSignal.setUpdateFrequencyForAll(
         DriveConstants.odometryFrequency, drivePosition, turnPosition, turnAbsolutePosition);
@@ -159,12 +161,12 @@ public class ModuleIOComp implements ModuleIO {
         driveAppliedVolts,
         driveSupplyCurrent,
         driveTorqueCurrent,
-        turnMagnetHealth,
         turnVelocity,
         turnAppliedVolts,
         turnSupplyCurrent,
         turnTorqueCurrent,
-        turnEncoderSyncStickyFault);
+        turnEncoderSyncStickyFault,
+        turnMagnetHealth);
     BaseStatusSignal.setUpdateFrequencyForAll(4.0, driveTempCelsius, turnTempCelsius);
     tryUntilOk(5, () -> ParentDevice.optimizeBusUtilizationForAll(driveTalon, turnTalon, cancoder));
     PhoenixUtil.registerSignals(
@@ -175,15 +177,15 @@ public class ModuleIOComp implements ModuleIO {
         driveSupplyCurrent,
         driveTorqueCurrent,
         driveTempCelsius,
-        turnAbsolutePosition,
-        turnMagnetHealth,
         turnPosition,
         turnVelocity,
         turnAppliedVolts,
         turnSupplyCurrent,
         turnTorqueCurrent,
         turnTempCelsius,
-        turnEncoderSyncStickyFault);
+        turnEncoderSyncStickyFault,
+        turnAbsolutePosition,
+        turnMagnetHealth);
   }
 
   @Override
@@ -213,6 +215,7 @@ public class ModuleIOComp implements ModuleIO {
     inputs.turnSupplyCurrentAmps = turnSupplyCurrent.getValueAsDouble();
     inputs.turnTorqueCurrentAmps = turnTorqueCurrent.getValueAsDouble();
     inputs.turnTempCelsius = turnTempCelsius.getValueAsDouble();
+    inputs.turnEncoderSyncStickyFault = turnEncoderSyncStickyFault.getValue();
 
     // Update turn encoder inputs
     inputs.turnEncoderConnected =
@@ -221,7 +224,6 @@ public class ModuleIOComp implements ModuleIO {
     // does the cancoder already do this?
     inputs.turnAbsolutePosition = Rotation2d.fromRotations(turnAbsolutePosition.getValueAsDouble());
     inputs.turnEncoderMagnetHealth = turnMagnetHealth.getValue();
-    inputs.turnEncoderSyncStickyFault = turnEncoderSyncStickyFault.getValue();
 
     // Update odometry inputs
     // TODO: MA does this different. investigate
@@ -275,4 +277,9 @@ public class ModuleIOComp implements ModuleIO {
   }
 
   // TODO: do we want a setBrakeMode method?
+  @Override
+  public void setBrakeMode(boolean enabled) {
+    driveConfig.MotorOutput.NeutralMode = enabled ? NeutralModeValue.Brake : NeutralModeValue.Coast;
+    tryUntilOk(5, () -> driveTalon.getConfigurator().apply(driveConfig, 0.25));
+  }
 }

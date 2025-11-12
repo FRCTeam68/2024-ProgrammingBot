@@ -193,7 +193,7 @@ public class Lights extends SubsystemBase {
   }
 
   /**
-   * Control LEDs with abstract control request object
+   * Control LEDs with abstract control request object.
    *
    * @param request Abstract Control Request class that other control requests extend for use
    */
@@ -208,7 +208,7 @@ public class Lights extends SubsystemBase {
     public int[] overlappingAnimationSlots = {};
 
     /**
-     * LED segment
+     * LED segment.
      *
      * @param startIndex Where to start the LED segment
      * @param endSize Where to end the LED segment (inclusive)
@@ -222,7 +222,7 @@ public class Lights extends SubsystemBase {
     }
 
     /**
-     * Overlapping animation slots to clear with segment
+     * Overlapping animation slots to clear with segment.
      *
      * @param overlappingAnimationSlots Animation slots of segments which contain overlapping LEDs
      *     with the current segment. Clears animations of overlapping to avoid multiple animations

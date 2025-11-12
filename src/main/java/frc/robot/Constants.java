@@ -22,20 +22,10 @@ public final class Constants {
     /** Running on a real robot. */
     REAL,
 
-    /** Running a physics simulator. */
+    /** Running a simulated robot. */
     SIM,
 
     /** Replaying from a log file. */
     REPLAY
-  }
-
-  /** Checks that the default robot is selected and tuning mode is disabled. */
-  public static class CheckPullRequest {
-    public static void main(String... args) {
-      if (tuningMode) {
-        System.err.println("Do not merge, non-default constants are configured.");
-        System.exit(1);
-      }
-    }
   }
 }

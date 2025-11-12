@@ -1,13 +1,16 @@
-package frc.robot.subsystems.rollers;
+package frc.robot.subsystems.shooter;
 
 import static frc.robot.util.PhoenixUtil.tryUntilOk;
 
 import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.StatusSignal;
+import com.ctre.phoenix6.configs.MotionMagicConfigs;
 import com.ctre.phoenix6.configs.Slot0Configs;
+import com.ctre.phoenix6.configs.Slot1Configs;
+import com.ctre.phoenix6.configs.Slot2Configs;
+import com.ctre.phoenix6.configs.SlotConfigs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.NeutralOut;
-import com.ctre.phoenix6.controls.PositionVoltage;
 import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.hardware.ParentDevice;
@@ -20,16 +23,19 @@ import edu.wpi.first.units.measure.Current;
 import edu.wpi.first.units.measure.Temperature;
 import edu.wpi.first.units.measure.Voltage;
 import frc.robot.util.PhoenixUtil;
+import lombok.Getter;
 
-/** Generic roller IO implementation for a roller or series of rollers using a TalonFX. */
-public class RollerSystemIOTalonFX implements RollerSystemIO {
+/** Generic roller IO implementation for a roller or series of rollers using a Kraken. */
+public class ShooterIOReal implements ShooterIO {
+  @Getter private static final double reduction = 1.0;
+
   // Hardware
   private final TalonFX talon;
 
   // Configuration
   private final TalonFXConfiguration config = new TalonFXConfiguration();
 
-  // Status Signals
+  // Status signals
   private final StatusSignal<Angle> position;
   private final StatusSignal<AngularVelocity> velocity;
   private final StatusSignal<Voltage> appliedVoltage;
@@ -38,49 +44,28 @@ public class RollerSystemIOTalonFX implements RollerSystemIO {
   private final StatusSignal<Temperature> tempCelsius;
 
   // Control requests
-  private final VoltageOut voltageOut = new VoltageOut(0).withEnableFOC(true);
+  private final VoltageOut voltageOut = new VoltageOut(0.0).withEnableFOC(true);
   private final VelocityVoltage velocityOut = new VelocityVoltage(0).withEnableFOC(true);
-  private final PositionVoltage positionOut = new PositionVoltage(0).withEnableFOC(true);
   private final NeutralOut neutralOut = new NeutralOut();
 
-  /**
-   * @param id CAN id of motor.
-   * @param canbus Name of the CAN bus this device is on.
-   *     <ul>
-   *       <li>"rio" for the native roboRIO CAN bus
-   *       <li>"*" for any CANivore seen by the program
-   *     </ul>
-   *
-   * @param currentLimitAmps Max supply current. Supply current is limited to 40 amps after 1
-   *     second.
-   * @param invertedValue Positive direction of the motor when looking at the face of the motor.
-   * @param neutralModeValue Neutral mode of the motor (Brake/Coast).
-   * @param reduction The ratio of motor to mechanism rotations, where a ratio greater than 1 is a
-   *     reduction.
-   */
-  public RollerSystemIOTalonFX(
-      int id,
-      String canbus,
-      int currentLimitAmps,
-      InvertedValue invertedValue,
-      NeutralModeValue neutralModeValue,
-      double reduction) {
-    talon = new TalonFX(id, canbus);
+  public ShooterIOReal(InvertedValue invertedValue) {
+    talon = new TalonFX(33, "rio");
 
-    // TODO: should we intially set pid to zero. need to do this if they are saved on the device.
     // Configure Motor
     config.MotorOutput.Inverted = invertedValue;
-    config.MotorOutput.NeutralMode = neutralModeValue;
+    config.MotorOutput.NeutralMode = NeutralModeValue.Brake;
     // Current limits
-    // TODO: Should we limit supply or torque current?
+    config.CurrentLimits.StatorCurrentLimitEnable = true;
+    config.CurrentLimits.StatorCurrentLimit = 120;
     config.CurrentLimits.SupplyCurrentLimitEnable = true;
-    config.CurrentLimits.SupplyCurrentLimit = currentLimitAmps;
-    config.CurrentLimits.SupplyCurrentLowerTime = 1;
+    config.CurrentLimits.SupplyCurrentLimit = 70;
     config.CurrentLimits.SupplyCurrentLowerLimit = 40;
+    config.CurrentLimits.SupplyCurrentLowerTime = 1;
     // Feedback
     config.Feedback.SensorToMechanismRatio = reduction;
     tryUntilOk(5, () -> talon.getConfigurator().apply(config, 0.25));
 
+    // Configure status signals
     position = talon.getPosition();
     velocity = talon.getVelocity();
     appliedVoltage = talon.getMotorVoltage();
@@ -92,22 +77,15 @@ public class RollerSystemIOTalonFX implements RollerSystemIO {
         5,
         () ->
             BaseStatusSignal.setUpdateFrequencyForAll(
-                50, position, velocity, appliedVoltage, supplyCurrent, torqueCurrent));
-    // TODO: should we just update the temp at 50 hz. We don't need to
+                50.0, position, velocity, appliedVoltage, supplyCurrent, torqueCurrent));
     tryUntilOk(5, () -> BaseStatusSignal.setUpdateFrequencyForAll(4, tempCelsius));
     tryUntilOk(5, () -> ParentDevice.optimizeBusUtilizationForAll(talon));
     PhoenixUtil.registerSignals(
-        (canbus == "rio") ? false : true,
-        position,
-        velocity,
-        appliedVoltage,
-        supplyCurrent,
-        torqueCurrent,
-        tempCelsius);
+        false, position, velocity, appliedVoltage, supplyCurrent, torqueCurrent, tempCelsius);
   }
 
   @Override
-  public void updateInputs(RollerSystemIOInputs inputs) {
+  public void updateInputs(ShooterIOInputs inputs) {
     inputs.connected =
         BaseStatusSignal.isAllGood(
             position, velocity, appliedVoltage, supplyCurrent, torqueCurrent);
@@ -125,13 +103,8 @@ public class RollerSystemIOTalonFX implements RollerSystemIO {
   }
 
   @Override
-  public void setVelocity(double velocity) {
-    talon.setControl(velocityOut.withVelocity(velocity));
-  }
-
-  @Override
-  public void setPosition(double rotations) {
-    talon.setControl(positionOut.withPosition(rotations));
+  public void setVelocity(double velocity, int slot) {
+    talon.setControl(velocityOut.withVelocity(velocity).withSlot(slot));
   }
 
   @Override
@@ -145,7 +118,20 @@ public class RollerSystemIOTalonFX implements RollerSystemIO {
   }
 
   @Override
-  public void setPID(Slot0Configs newConfig) {
+  public void setPID(SlotConfigs... newConfig) {
+    for (int i = 0; i < Math.min(newConfig.length, 3); i++) {
+      SlotConfigs slotConfig = newConfig[i];
+      switch (i) {
+        case 0 -> config.Slot0 = Slot0Configs.from(slotConfig);
+        case 1 -> config.Slot1 = Slot1Configs.from(slotConfig);
+        case 2 -> config.Slot2 = Slot2Configs.from(slotConfig);
+      }
+    }
+    tryUntilOk(5, () -> talon.getConfigurator().apply(config, 0.25));
+  }
+
+  @Override
+  public void setMotionMagic(MotionMagicConfigs newConfig) {
     tryUntilOk(5, () -> talon.getConfigurator().apply(newConfig, 0.25));
   }
 }

@@ -23,7 +23,7 @@ public class WristIOSim implements WristIO {
     sim =
         new DCMotorSim(
             LinearSystemId.createDCMotorSystem(
-                DCMotor.getFalcon500(2), .1, WristIOTalonFX.getReduction()),
+                DCMotor.getFalcon500(2), .1, WristIOReal.getReduction()),
             DCMotor.getFalcon500(2));
   }
 

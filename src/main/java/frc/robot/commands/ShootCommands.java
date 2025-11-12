@@ -2,9 +2,9 @@ package frc.robot.commands;
 
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
-import frc.robot.subsystems.Shooter;
 import frc.robot.subsystems.ShooterConstants.ShooterConfig;
 import frc.robot.subsystems.rollers.RollerSystem;
+import frc.robot.subsystems.shooter.Shooter;
 import frc.robot.subsystems.wrist.Wrist;
 
 public class ShootCommands {
@@ -26,7 +26,7 @@ public class ShootCommands {
         Commands.waitUntil(() -> shooter.atSetpoint()),
         Commands.runOnce(() -> feederUpper.setVolts(12)),
         Commands.waitSeconds(2),
-        Commands.runOnce(() -> feederUpper.setVolts(12)));
+        Commands.runOnce(() -> feederUpper.setVolts(0)));
   }
 
   public static Command setStaticShotConfig(Shooter shooter, Wrist wrist, ShooterConfig config) {

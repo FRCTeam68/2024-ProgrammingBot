@@ -1,7 +1,6 @@
 package frc.robot.subsystems.rollers;
 
-import com.ctre.phoenix6.configs.MotionMagicConfigs;
-import com.ctre.phoenix6.configs.SlotConfigs;
+import com.ctre.phoenix6.configs.Slot0Configs;
 import org.littletonrobotics.junction.AutoLog;
 
 public interface RollerSystemIO {
@@ -25,17 +24,15 @@ public interface RollerSystemIO {
    * Run roller at velocity
    *
    * @param velocity Velocity in mechanism rotations per second
-   * @param slot Slot must be within [0,2]
    */
-  default void setVelocity(double velocity, int slot) {}
+  default void setVelocity(double velocity) {}
 
   /**
    * Run roller to position
    *
    * @param rotations Position in mechanism rotations
-   * @param slot Slot must be within [0,2]
    */
-  default void setPosition(double rotations, int slot) {}
+  default void setPosition(double rotations) {}
 
   /** Stop roller */
   default void stop() {}
@@ -43,12 +40,6 @@ public interface RollerSystemIO {
   /** Stop roller and set current position to zero */
   default void zero() {}
 
-  /**
-   * Set slot configs for closed loop control on drive motor. Maximum 3 slot configs. All additional
-   * are ignored.
-   */
-  default void setPID(SlotConfigs... newconfig) {}
-
-  /** Set motion magic velocity, acceleration, and jerk */
-  default void setMotionMagic(MotionMagicConfigs newconfig) {}
+  /** Set slot configs for closed loop control of the roller. */
+  default void setPID(Slot0Configs newConfig) {}
 }

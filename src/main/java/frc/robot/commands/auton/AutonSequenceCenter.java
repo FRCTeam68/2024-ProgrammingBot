@@ -9,16 +9,38 @@ import frc.robot.subsystems.rollers.RollerSystem;
 import frc.robot.subsystems.sensors.NoteSensor;
 import frc.robot.subsystems.shooter.Shooter;
 import frc.robot.subsystems.wrist.Wrist;
+import java.util.ArrayList;
+import java.util.List;
 
-public class Center {
-  /*
-   * Paths:
-   * 0: Start -> Close Right
-   * 1: Close Right -> Close Middle
-   * 2: Close Middle -> Close Left
-   */
+public class AutonSequenceCenter implements AutonSequence {
+  @Override
+  public String getAutonChooserName() {
+    return "Center";
+  }
 
-  public static Command sequence(
+  private enum Path {
+    side("CenterPath");
+
+    String name;
+
+    Path(String name) {
+      this.name = name;
+    }
+  }
+
+  @Override
+  public List<String> getPathNames() {
+    List<String> pathNames = new ArrayList<>();
+
+    for (Path path : Path.values()) {
+      pathNames.add(path.name);
+    }
+
+    return pathNames;
+  }
+
+  @Override
+  public Command sequence(
       Drive drive,
       Wrist wrist,
       Shooter shooter,

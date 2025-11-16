@@ -17,6 +17,7 @@ import edu.wpi.first.wpilibj2.command.button.CommandPS4Controller;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import frc.robot.commands.DriveCommands;
 import frc.robot.commands.auton.AutonCommands;
+import frc.robot.commands.auton.AutonSequenceSide;
 import frc.robot.subsystems.NoteVisualizer;
 import frc.robot.subsystems.drive.Drive;
 import frc.robot.subsystems.drive.DriveConstants;
@@ -273,8 +274,17 @@ public class RobotContainer {
    * @return the command to run in autonomous
    */
   public Command getAutonomousCommand() {
+    // return AutonCommands.autonCommand(
+    //     drive, wrist, shooter, intake, feederLower, feederUpper, noteSensor, autonChooser.get());
     return AutonCommands.autonCommand(
-        drive, wrist, shooter, intake, feederLower, feederUpper, noteSensor, autonChooser.get());
+        drive,
+        wrist,
+        shooter,
+        intake,
+        feederLower,
+        feederUpper,
+        noteSensor,
+        new AutonSequenceSide(0));
   }
 
   /** Loads autonomous paths from storage. This method can be safely be called periodically. */

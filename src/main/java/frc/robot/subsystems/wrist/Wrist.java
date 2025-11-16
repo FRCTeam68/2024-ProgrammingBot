@@ -11,7 +11,6 @@ import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
-import frc.robot.RobotState;
 import frc.robot.util.LoggedTunableNumber;
 import frc.robot.util.PhoenixUtil.ControlMode;
 import java.util.function.Supplier;
@@ -90,7 +89,7 @@ public class Wrist extends SubsystemBase {
             .rotateAround(
                 new Translation3d(drivePoseSupplier.get().getTranslation()),
                 new Rotation3d(drivePoseSupplier.get().getRotation()));
-    Logger.recordOutput("RobotPose/Note", RobotState.haveNote ? notePose : null);
+    // Logger.recordOutput("RobotPose/Note", RobotState.haveNote ? notePose : null);
 
     // Update tunable numbers
     if (Constants.tuningMode) {

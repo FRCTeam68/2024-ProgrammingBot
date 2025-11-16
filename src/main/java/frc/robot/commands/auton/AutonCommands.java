@@ -11,7 +11,6 @@ import frc.robot.subsystems.rollers.RollerSystem;
 import frc.robot.subsystems.sensors.NoteSensor;
 import frc.robot.subsystems.shooter.Shooter;
 import frc.robot.subsystems.wrist.Wrist;
-import frc.robot.util.AutonConfig;
 import frc.robot.util.FollowPathUtil;
 
 public class AutonCommands {
@@ -30,24 +29,15 @@ public class AutonCommands {
       RollerSystem feederLower,
       RollerSystem feederUpper,
       NoteSensor noteSensor,
-      AutonConfig config) {
+      AutonSequence root) {
     if (Constants.getMode() == Mode.SIM) {
       drive.setPose(FollowPathUtil.getStartingPose());
       wrist.zero(wrist.getIntake().get());
     }
 
     RobotState.haveNote = true;
-    Command command = null;
 
-    if (config != null && config.sequence != null) {
-      switch (config.sequence) {
-        case Center -> command =
-            Center.sequence(drive, wrist, shooter, intake, feederLower, feederUpper, noteSensor);
-
-        default -> System.out.println("Error attempting to run an undeclared auton sequence.");
-      }
-    }
-    return command;
+    return root.sequence(drive, wrist, shooter, intake, feederLower, feederUpper, noteSensor);
   }
 
   /**

@@ -97,6 +97,9 @@ public class Robot extends LoggedRobot {
     PathfindingCommand.warmupCommand().schedule();
 
     // Threads.setCurrentThreadPriority(true, 1);
+
+    CommandScheduler.getInstance()
+        .onCommandInitialize((Command command) -> Logger.recordOutput("test", command.getName()));
   }
 
   /** This function is called periodically during all modes. */

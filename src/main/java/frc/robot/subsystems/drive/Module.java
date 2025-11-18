@@ -153,20 +153,20 @@ public class Module {
     state.cosineScale(inputs.turnPosition);
 
     // Apply setpoints
-    io.setDriveVelocity(state.speedMetersPerSecond / DriveConstants.wheelRadius);
-    io.setTurnPosition(state.angle);
+    io.runDriveVelocity(state.speedMetersPerSecond / DriveConstants.wheelRadius);
+    io.runTurnPosition(state.angle);
   }
 
   /** Runs the module with the specified output while controlling to zero degrees. */
   public void runCharacterization(double output) {
-    io.setDriveOpenLoop(output);
-    io.setTurnPosition(new Rotation2d());
+    io.runDriveOpenLoop(output);
+    io.runTurnPosition(new Rotation2d());
   }
 
   /** Disables all outputs to motors. */
   public void stop() {
-    io.setDriveOpenLoop(0.0);
-    io.setTurnOpenLoop(0.0);
+    io.runDriveOpenLoop(0.0);
+    io.runTurnOpenLoop(0.0);
   }
 
   /** Returns the current turn angle of the module. */

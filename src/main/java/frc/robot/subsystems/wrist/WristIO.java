@@ -28,16 +28,20 @@ public interface WristIO {
   default void updateInputs(WristIOInputs inputs) {}
 
   /** Run motor at volts */
-  default void setVolts(double volts) {}
+  default void runVolts(double volts) {}
 
   /** Run mechanism at position */
-  default void setPosition(double position, int slot) {}
+  default void runPosition(double position, int slot) {}
 
   /** Stop motor */
   default void stop() {}
 
-  /** Zero mechanism */
-  default void zero(double offset) {}
+  /**
+   * Set the current mechanism elevation
+   *
+   * @param elevation current elevation
+   */
+  default void setPosition(double elevation) {}
 
   /**
    * Set slot configs

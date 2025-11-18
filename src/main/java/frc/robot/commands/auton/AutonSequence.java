@@ -9,15 +9,7 @@ import frc.robot.subsystems.wrist.Wrist;
 import java.util.List;
 
 public interface AutonSequence {
-  default String getAutonChooserName() {
-    return "";
-  }
-
   default List<String> getPathNames() {
-    return getPathNames(0);
-  }
-
-  default List<String> getPathNames(int index) {
     return null;
   }
 

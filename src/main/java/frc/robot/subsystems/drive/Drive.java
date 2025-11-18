@@ -229,6 +229,11 @@ public class Drive extends SubsystemBase {
     stop();
   }
 
+  /** Resets the current odometry pose. */
+  public void setPose(Pose2d pose) {
+    poseEstimator.resetPosition(rawGyroRotation, getModulePositions(), pose);
+  }
+
   /** Returns a command to run a quasistatic test in the specified direction. */
   public Command sysIdQuasistatic(SysIdRoutine.Direction direction) {
     return run(() -> runCharacterization(0.0))
@@ -290,11 +295,6 @@ public class Drive extends SubsystemBase {
   /** Returns the raw gyro rotation read by the IMU */
   public Rotation2d getGyroRotation() {
     return gyroInputs.yawPosition;
-  }
-
-  /** Resets the current odometry pose. */
-  public void setPose(Pose2d pose) {
-    poseEstimator.resetPosition(rawGyroRotation, getModulePositions(), pose);
   }
 
   /** Adds a new timestamped vision measurement. */

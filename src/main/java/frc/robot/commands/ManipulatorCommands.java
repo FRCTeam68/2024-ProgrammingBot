@@ -8,10 +8,10 @@ public class ManipulatorCommands {
   public static Command wristZeroByAmps(Wrist wrist) {
     Command command =
         Commands.sequence(
-            Commands.runOnce(() -> wrist.setVolts(3)),
+            Commands.runOnce(() -> wrist.runVolts(3)),
             Commands.waitUntil(() -> wrist.getLeaderTorqueCurrent() > 20),
             Commands.runOnce(() -> wrist.stop()),
-            Commands.runOnce(() -> wrist.zero(wrist.getMaximum())));
+            Commands.runOnce(() -> wrist.setPosition(wrist.getMaximum())));
     command.addRequirements(wrist);
     return command;
   }

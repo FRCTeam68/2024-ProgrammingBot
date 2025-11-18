@@ -19,16 +19,20 @@ public interface ShooterIO {
   default void updateInputs(ShooterIOInputs inputs) {}
 
   /** Run motor at volts */
-  default void setVolts(double volts) {}
+  default void runVolts(double volts) {}
 
   /** Run mechanism at velocity */
-  default void setVelocity(double velocity, int slot) {}
+  default void runVelocity(double velocity, int slot) {}
 
   /** Stop motor */
   default void stop() {}
 
-  /** Zero mechanism */
-  default void zero() {}
+  /**
+   * Set the current mechanism position
+   *
+   * @param rotations Position in mechanism rotations
+   */
+  default void setPosition(double rotations) {}
 
   /**
    * Set slot configs

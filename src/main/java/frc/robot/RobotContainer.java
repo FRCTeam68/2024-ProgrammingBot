@@ -17,6 +17,8 @@ import edu.wpi.first.wpilibj2.command.button.CommandPS4Controller;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import frc.robot.commands.DriveCommands;
 import frc.robot.commands.auton.AutonCommands;
+import frc.robot.commands.auton.AutonSequence;
+import frc.robot.commands.auton.AutonSequenceCenter;
 import frc.robot.commands.auton.AutonSequenceSide;
 import frc.robot.subsystems.NoteVisualizer;
 import frc.robot.subsystems.drive.Drive;
@@ -45,8 +47,7 @@ import frc.robot.subsystems.wrist.WristIO;
 import frc.robot.subsystems.wrist.WristIOReal;
 import frc.robot.subsystems.wrist.WristIOSim;
 import frc.robot.util.AllianceFlipUtil;
-import frc.robot.util.AutonConfig;
-import frc.robot.util.AutonConfig.AutonSequence;
+import frc.robot.util.AutonUtil;
 import frc.robot.util.FollowPathUtil;
 import org.littletonrobotics.junction.networktables.LoggedDashboardChooser;
 
@@ -85,7 +86,7 @@ public class RobotContainer {
           AlertType.kError);
 
   // Dashboard inputs
-  private final LoggedDashboardChooser<AutonConfig> autonChooser;
+  private final LoggedDashboardChooser<AutonSequence> autonChooser;
 
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
   public RobotContainer() {
@@ -197,8 +198,9 @@ public class RobotContainer {
     // Set up dashboard auto chooser
     autonChooser = new LoggedDashboardChooser<>("Auto Chooser");
     autonChooser.addDefaultOption("NONE", null);
-    autonChooser.addOption(
-        "Center Close", new AutonConfig(AutonSequence.Center, "Center Start-Close Right"));
+    autonChooser.addOption("Center", new AutonSequenceCenter());
+    autonChooser.addOption("Left", new AutonSequenceSide(0));
+    autonChooser.addOption("Right", new AutonSequenceSide(1));
 
     // Configure the button bindings
     configureButtonBindings();
@@ -241,8 +243,8 @@ public class RobotContainer {
     //         Constants.getMode() == Mode.SIM && noteSensor.getAutomaticNoteSim().get()));
     driverController
         .rightTrigger()
-        .onTrue(Commands.runOnce(() -> shooter.setVelocity(50, 0, 100, 0)));
-    driverController.rightBumper().onTrue(Commands.runOnce(() -> shooter.setVolts(6, 2)));
+        .onTrue(Commands.runOnce(() -> shooter.runVelocity(50, 0, 100, 0)));
+    driverController.rightBumper().onTrue(Commands.runOnce(() -> shooter.runVolts(6, 2)));
     // driverController
     //     .rightBumper()
     //     .onTrue(
@@ -274,23 +276,13 @@ public class RobotContainer {
    * @return the command to run in autonomous
    */
   public Command getAutonomousCommand() {
-    // return AutonCommands.autonCommand(
-    //     drive, wrist, shooter, intake, feederLower, feederUpper, noteSensor, autonChooser.get());
     return AutonCommands.autonCommand(
-        drive,
-        wrist,
-        shooter,
-        intake,
-        feederLower,
-        feederUpper,
-        noteSensor,
-        new AutonSequenceSide(0));
+        drive, wrist, shooter, intake, feederLower, feederUpper, noteSensor, autonChooser.get());
   }
 
   /** Loads autonomous paths from storage. This method can be safely be called periodically. */
   public void loadAutonomousPath() {
-    FollowPathUtil.loadPathFromList(
-        autonChooser.get() != null ? autonChooser.get().pathNames : null);
+    AutonUtil.loadPaths(autonChooser.get() != null ? autonChooser.get().getPathNames() : null);
   }
 
   /** Stops all subsystems and cancels any scheduled commands. */

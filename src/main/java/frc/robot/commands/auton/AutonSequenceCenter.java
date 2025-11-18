@@ -13,29 +13,30 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class AutonSequenceCenter implements AutonSequence {
-  @Override
-  public String getAutonChooserName() {
-    return "Center";
+  private static final List<String> pathNames = new ArrayList<>();
+
+  public AutonSequenceCenter() {
+    for (Path path : Path.values()) {
+      pathNames.add(path.getPathName());
+    }
   }
 
   private enum Path {
     side("CenterPath");
 
-    String name;
+    private String pathName;
 
-    Path(String name) {
-      this.name = name;
+    private Path(String pathName) {
+      this.pathName = pathName;
+    }
+
+    private String getPathName() {
+      return pathName;
     }
   }
 
   @Override
   public List<String> getPathNames() {
-    List<String> pathNames = new ArrayList<>();
-
-    for (Path path : Path.values()) {
-      pathNames.add(path.name);
-    }
-
     return pathNames;
   }
 
@@ -52,9 +53,10 @@ public class AutonSequenceCenter implements AutonSequence {
         // Shoot preload note
         ShootCommands.setStaticShotConfig(shooter, wrist, ShooterConstants.subwoofer),
         Commands.waitUntil(() -> shooter.atSetpoint()),
-        Commands.runOnce(() -> feederUpper.setVolts(12)),
+        Commands.runOnce(() -> feederUpper.runVolts(12)),
         Commands.waitSeconds(2),
         // Collect and shoot close right note
-        AutonCommands.intake(intake, feederUpper, feederLower, wrist, noteSensor, 0, 2));
+        AutonCommands.intake(
+            intake, feederUpper, feederLower, wrist, noteSensor, Path.side.getPathName(), 2));
   }
 }

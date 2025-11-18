@@ -19,7 +19,7 @@ public interface MotorTemplateIO {
   default void updateInputs(MotorTemplateIOInputs inputs) {}
 
   /** Run motor at volts */
-  default void setVolts(double volts) {}
+  default void runVolts(double volts) {}
 
   /**
    * Run motor at velocity
@@ -27,7 +27,7 @@ public interface MotorTemplateIO {
    * @param velocity Velocity in mechanism rotations per second
    * @param slot
    */
-  default void setVelocity(double velocity, int slot) {}
+  default void runVelocity(double velocity, int slot) {}
 
   /**
    * Run motor to position
@@ -35,13 +35,17 @@ public interface MotorTemplateIO {
    * @param position Position in mechanism rotations
    * @param slot
    */
-  default void setPosition(double position, int slot) {}
+  default void runPosition(double rotations, int slot) {}
 
   /** Stop motor */
   default void stop() {}
 
-  /** Zero mechanism */
-  default void zero() {}
+  /**
+   * Set the current mechanism position
+   *
+   * @param rotations Position in mechanism rotations
+   */
+  default void setPosition(double rotations) {}
 
   /**
    * Set slot configs

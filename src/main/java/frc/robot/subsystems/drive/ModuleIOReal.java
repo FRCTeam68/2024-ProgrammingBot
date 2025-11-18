@@ -72,7 +72,6 @@ public class ModuleIOReal implements ModuleIO {
   private final StatusSignal<Temperature> turnTempCelsius;
   private final StatusSignal<Boolean> turnEncoderSyncStickyFault;
 
-  @SuppressWarnings("unused")
   public ModuleIOReal(ModuleConfig constants) {
     driveTalon = new TalonFX(constants.driveMotorId(), DriveConstants.canbus);
     turnTalon = new TalonFX(constants.turnMotorId(), DriveConstants.canbus);
@@ -243,24 +242,24 @@ public class ModuleIOReal implements ModuleIO {
   }
 
   @Override
-  public void setDriveOpenLoop(double output) {
+  public void runDriveOpenLoop(double output) {
     driveTalon.setControl(torqueCurrentRequest.withOutput(output));
   }
 
   @Override
-  public void setTurnOpenLoop(double output) {
+  public void runTurnOpenLoop(double output) {
     turnTalon.setControl(torqueCurrentRequest.withOutput(output));
   }
 
   @Override
-  public void setDriveVelocity(double velocityRadPerSec) {
+  public void runDriveVelocity(double velocityRadPerSec) {
     // TODO: how to hadle ff, kS or in this method
     driveTalon.setControl(
         velocityTorqueCurrentRequest.withVelocity(Units.radiansToRotations(velocityRadPerSec)));
   }
 
   @Override
-  public void setTurnPosition(Rotation2d rotation) {
+  public void runTurnPosition(Rotation2d rotation) {
     turnTalon.setControl(positionTorqueCurrentRequest.withPosition(rotation.getRotations()));
   }
 

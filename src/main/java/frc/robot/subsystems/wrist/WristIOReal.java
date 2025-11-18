@@ -162,12 +162,12 @@ public class WristIOReal implements WristIO {
   }
 
   @Override
-  public void setVolts(double volts) {
+  public void runVolts(double volts) {
     talon.setControl(voltageOut.withOutput(volts));
   }
 
   @Override
-  public void setPosition(double position, int slot) {
+  public void runPosition(double position, int slot) {
     talon.setControl(positionOut.withPosition(Units.degreesToRotations(position)).withSlot(slot));
   }
 
@@ -177,9 +177,8 @@ public class WristIOReal implements WristIO {
   }
 
   @Override
-  public void zero(double offset) {
-    setVolts(0);
-    talon.setPosition(Units.degreesToRotations(offset));
+  public void setPosition(double elevation) {
+    talon.setPosition(Units.degreesToRotations(elevation));
   }
 
   @Override

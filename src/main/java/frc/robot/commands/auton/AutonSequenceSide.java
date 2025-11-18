@@ -14,34 +14,32 @@ import java.util.List;
 
 public class AutonSequenceSide implements AutonSequence {
   private final int index;
+  private final List<String> pathNames = new ArrayList<>();
 
   public AutonSequenceSide(int index) {
     this.index = index;
-  }
 
-  @Override
-  public String getAutonChooserName() {
-    return "{Left/Right}";
+    for (Path path : Path.values()) {
+      pathNames.add(path.getPathName(index));
+    }
   }
 
   private enum Path {
-    side("LeftPath", "Right Path");
+    side("LeftPath", "RightPath");
 
     String[] name;
 
     Path(String... name) {
       this.name = name;
     }
+
+    String getPathName(int index) {
+      return name[index];
+    }
   }
 
   @Override
-  public List<String> getPathNames(int index) {
-    List<String> pathNames = new ArrayList<>();
-
-    for (Path path : Path.values()) {
-      pathNames.add(path.name[index]);
-    }
-
+  public List<String> getPathNames() {
     return pathNames;
   }
 
@@ -55,12 +53,14 @@ public class AutonSequenceSide implements AutonSequence {
       RollerSystem feederUpper,
       NoteSensor noteSensor) {
     return Commands.sequence(
+      Commands.runOnce(() -> System.out.println("index: " + index)),
         // Shoot preload note
         ShootCommands.setStaticShotConfig(shooter, wrist, ShooterConstants.subwoofer),
         Commands.waitUntil(() -> shooter.atSetpoint()),
-        Commands.runOnce(() -> feederUpper.setVolts(12)),
+        Commands.runOnce(() -> feederUpper.runVolts(12)),
         Commands.waitSeconds(2),
         // Collect and shoot close right note
-        AutonCommands.intake(intake, feederUpper, feederLower, wrist, noteSensor, 0, 2));
+        AutonCommands.intake(
+            intake, feederUpper, feederLower, wrist, noteSensor, Path.side.getPathName(index), 2));
   }
 }

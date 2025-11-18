@@ -20,9 +20,10 @@ import lombok.Getter;
 public class FollowPathUtil {
   @Getter private static List<PathPlannerPath> path = new ArrayList<>();
   private static List<String> loadedPathNames = new ArrayList<>();
-  private static final Alert loadPathfromListAlert =
-      new Alert(
-          "Error loading auton path from list. Auton will not run as expected.", AlertType.kError);
+  private static final Alert loadPathAlert =
+      new Alert("Error loading teleop paths.", AlertType.kError);
+
+  public static enum TeleopPath {}
 
   /**
    * Loads paths from storage. This method can be safely be called periodically.
@@ -56,7 +57,7 @@ public class FollowPathUtil {
       }
     }
 
-    loadPathfromListAlert.set(pathLoadError);
+    loadPathAlert.set(pathLoadError);
     loadedPathNames = pathNames;
   }
 
@@ -80,42 +81,6 @@ public class FollowPathUtil {
     }
 
     return new Pose2d();
-  }
-
-  /**
-   * Builds a command to follow a path from the preloaded paths
-   *
-   * @param index Index of the path
-   * @return A path following command for the given path.
-   *     <li>If an error occurs, this will return a command that does nothing, finishing
-   *         immediately.
-   */
-  public static Command followPath(int index) {
-    if (path.size() > index) {
-      return followPath(path.get(index));
-    } else {
-      System.out.println(
-          "Error following path: Path index " + index + " is out of range of loaded paths.");
-      return Commands.none();
-    }
-  }
-
-  /**
-   * Builds a command to follow a path from a path name
-   *
-   * @param pathName The name of the path to load
-   * @return A path following command for the given path
-   *     <li>If an error occurs, this will return a command that does nothing, finishing
-   *         immediately.
-   */
-  public static Command followPath(String pathName) {
-    try {
-      return followPath(PathPlannerPath.fromPathFile(pathName));
-    } catch (Exception e) {
-      System.out.print("Error loading path from name: ");
-      e.printStackTrace();
-      return Commands.none();
-    }
   }
 
   /**

@@ -11,7 +11,7 @@ import frc.robot.subsystems.rollers.RollerSystem;
 import frc.robot.subsystems.sensors.NoteSensor;
 import frc.robot.subsystems.shooter.Shooter;
 import frc.robot.subsystems.wrist.Wrist;
-import frc.robot.util.FollowPathUtil;
+import frc.robot.util.AutonUtil;
 
 public class AutonCommands {
   /**
@@ -31,12 +31,13 @@ public class AutonCommands {
       NoteSensor noteSensor,
       AutonSequence root) {
     if (Constants.getMode() == Mode.SIM) {
-      drive.setPose(FollowPathUtil.getStartingPose());
-      wrist.zero(wrist.getIntake().get());
+      drive.setPose(AutonUtil.getStartingPose());
+      wrist.setPosition(wrist.getStartingElevation());
     }
 
     RobotState.haveNote = true;
 
+    if (root == null) root = new AutonSequence() {};
     return root.sequence(drive, wrist, shooter, intake, feederLower, feederUpper, noteSensor);
   }
 
@@ -55,10 +56,10 @@ public class AutonCommands {
       RollerSystem feederLower,
       Wrist wrist,
       NoteSensor noteSensor,
-      int path,
+      String pathName,
       double timeout) {
     return Commands.deadline(
-        FollowPathUtil.followPath(path)
+        AutonUtil.followPath(pathName)
             .andThen(Commands.waitUntil(() -> RobotState.haveNote).withTimeout(timeout)),
         IntakeCommands.intake(wrist, intake, feederLower, feederUpper, noteSensor));
   }

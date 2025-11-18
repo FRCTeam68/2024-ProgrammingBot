@@ -108,17 +108,17 @@ public class MotorTemplateIOTalonFX implements MotorTemplateIO {
   }
 
   @Override
-  public void setVolts(double volts) {
+  public void runVolts(double volts) {
     talon.setControl(voltageOut.withOutput(volts));
   }
 
   @Override
-  public void setVelocity(double velocity, int slot) {
+  public void runVelocity(double velocity, int slot) {
     talon.setControl(velocityOut.withVelocity(velocity).withSlot(slot));
   }
 
   @Override
-  public void setPosition(double position, int slot) {
+  public void runPosition(double position, int slot) {
     talon.setControl(positionOut.withPosition(position).withSlot(slot));
   }
 
@@ -128,8 +128,8 @@ public class MotorTemplateIOTalonFX implements MotorTemplateIO {
   }
 
   @Override
-  public void zero() {
-    talon.setPosition(0);
+  public void setPosition(double rotations) {
+    talon.setPosition(rotations);
   }
 
   @Override

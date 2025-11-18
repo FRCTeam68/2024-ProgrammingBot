@@ -73,10 +73,10 @@ public class RollerSystem extends SubsystemBase {
   }
 
   /** Run roller at volts */
-  public void setVolts(double inputVolts) {
+  public void runVolts(double inputVolts) {
     setpoint = inputVolts;
     mode = ControlMode.Voltage;
-    io.setVolts(inputVolts);
+    io.runVolts(inputVolts);
   }
 
   /**
@@ -84,10 +84,10 @@ public class RollerSystem extends SubsystemBase {
    *
    * @param velocity Velocity in mechanism rotations per second
    */
-  public void setVelocity(double velocity) {
+  public void runVelocity(double velocity) {
     setpoint = velocity;
     mode = ControlMode.Velocity;
-    io.setVelocity(velocity);
+    io.runVelocity(velocity);
   }
 
   /**
@@ -95,10 +95,10 @@ public class RollerSystem extends SubsystemBase {
    *
    * @param rotations Position in mechanism rotations
    */
-  public void setPosition(double position) {
+  public void runPosition(double position) {
     setpoint = position;
     mode = ControlMode.Position;
-    io.setPosition(position);
+    io.runPosition(position);
   }
 
   /** Stop roller */
@@ -107,9 +107,18 @@ public class RollerSystem extends SubsystemBase {
     io.stop();
   }
 
-  /** Stop roller and set current position to zero */
+  /** Set the current mechanism position to zero */
   public void zero() {
-    io.zero();
+    io.setPosition(0);
+  }
+
+  /**
+   * Set the current mechanism position
+   *
+   * @param rotations Position in mechanism rotations
+   */
+  public void setPosition(double rotations) {
+    io.setPosition(rotations);
   }
 
   /**

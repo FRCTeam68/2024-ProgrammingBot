@@ -21,7 +21,7 @@ import org.littletonrobotics.junction.Logger;
 public class Wrist extends SubsystemBase {
   @Getter private final double minimum = 0;
   @Getter private final double maximum = 45;
-  private final double startingElevation = 45;
+  @Getter private final double startingElevation = 45;
 
   @Getter
   private final LoggedTunableNumber intake = new LoggedTunableNumber("Wrist/IntakeElevation", 40);
@@ -55,7 +55,7 @@ public class Wrist extends SubsystemBase {
     this.drivePoseSupplier = drivePoseSupplier;
     this.io = io;
 
-    zero(startingElevation);
+    setPosition(startingElevation);
   }
 
   public void periodic() {
@@ -94,7 +94,11 @@ public class Wrist extends SubsystemBase {
     // Update tunable numbers
     if (Constants.tuningMode) {
       if (kP0.hasChanged(hashCode()) || kD0.hasChanged(hashCode()) || kS0.hasChanged(hashCode())) {
-        setPID();
+        io.setPID(
+            new SlotConfigs()
+                .withKP(kP0.getAsDouble())
+                .withKD(kD0.getAsDouble())
+                .withKS(kS0.getAsDouble()));
       }
     }
   }
@@ -108,10 +112,10 @@ public class Wrist extends SubsystemBase {
    *
    * @param inputVolts Voltage to drive motor at
    */
-  public void setVolts(double volts) {
+  public void runVolts(double volts) {
     setpoint = volts;
     mode = ControlMode.Voltage;
-    io.setVolts(volts);
+    io.runVolts(volts);
   }
 
   /**
@@ -119,10 +123,25 @@ public class Wrist extends SubsystemBase {
    *
    * @param elevation Goal position
    */
-  public void setPosition(double elevation) {
+  public void runPosition(double elevation) {
     setpoint = MathUtil.clamp(elevation, minimum, maximum);
     mode = ControlMode.Position;
-    io.setPosition(elevation, 0);
+    io.runPosition(elevation, 0);
+  }
+
+  /** Stop motor */
+  public void stop() {
+    mode = ControlMode.Neutral;
+    io.stop();
+  }
+
+  /**
+   * Set the current mechanism in degrees of elevation
+   *
+   * @param elevation current elevation
+   */
+  public void setPosition(double elevation) {
+    io.setPosition(elevation);
   }
 
   /**
@@ -179,24 +198,5 @@ public class Wrist extends SubsystemBase {
     return (mode == ControlMode.Position)
         ? Math.abs(setpoint - inputs.elevationDeg) < setpointBandPosition.getAsDouble()
         : false;
-  }
-
-  /** Stop motor */
-  public void stop() {
-    mode = ControlMode.Neutral;
-    io.stop();
-  }
-
-  /** Sets the current mechanism position */
-  public void zero(double offset) {
-    io.zero(offset);
-  }
-
-  private void setPID() {
-    io.setPID(
-        new SlotConfigs()
-            .withKP(kP0.getAsDouble())
-            .withKD(kD0.getAsDouble())
-            .withKS(kS0.getAsDouble()));
   }
 }

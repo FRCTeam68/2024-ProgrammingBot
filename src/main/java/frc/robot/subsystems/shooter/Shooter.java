@@ -112,12 +112,12 @@ public class Shooter extends SubsystemBase {
    *
    * @param inputVolts Voltage to drive motor at
    */
-  public void setVolts(double upperVolts, double lowerVolts) {
+  public void runVolts(double upperVolts, double lowerVolts) {
     upperSetpoint = upperVolts;
     lowerSetpoint = lowerVolts;
     controlMode = ControlMode.Voltage;
-    upperIO.setVolts(upperVolts);
-    lowerIO.setVolts(lowerVolts);
+    upperIO.runVolts(upperVolts);
+    lowerIO.runVolts(lowerVolts);
   }
 
   /**
@@ -125,8 +125,8 @@ public class Shooter extends SubsystemBase {
    *
    * @param velocity Goal velocity
    */
-  public void setVelocity(double upperSpeed, double lowerSpeed) {
-    setVelocity(upperSpeed, 0, lowerSpeed, 0);
+  public void runVelocity(double upperSpeed, double lowerSpeed) {
+    runVelocity(upperSpeed, 0, lowerSpeed, 0);
   }
 
   /**
@@ -134,12 +134,12 @@ public class Shooter extends SubsystemBase {
    *
    * @param velocity Goal velocity
    */
-  public void setVelocity(double upperSpeed, int upperSlot, double lowerSpeed, int lowerSlot) {
+  public void runVelocity(double upperSpeed, int upperSlot, double lowerSpeed, int lowerSlot) {
     upperSetpoint = upperSpeed;
     lowerSetpoint = lowerSpeed;
     controlMode = ControlMode.Velocity;
-    upperIO.setVelocity(upperSpeed, upperSlot);
-    lowerIO.setVelocity(lowerSpeed, lowerSlot);
+    upperIO.runVelocity(upperSpeed, upperSlot);
+    lowerIO.runVelocity(lowerSpeed, lowerSlot);
   }
 
   /** Stop motor */

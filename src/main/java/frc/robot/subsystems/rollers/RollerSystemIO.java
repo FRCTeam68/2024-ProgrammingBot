@@ -18,27 +18,31 @@ public interface RollerSystemIO {
   default void updateInputs(RollerSystemIOInputs inputs) {}
 
   /** Run roller at volts */
-  default void setVolts(double volts) {}
+  default void runVolts(double volts) {}
 
   /**
    * Run roller at velocity
    *
    * @param velocity Velocity in mechanism rotations per second
    */
-  default void setVelocity(double velocity) {}
+  default void runVelocity(double velocity) {}
 
   /**
    * Run roller to position
    *
    * @param rotations Position in mechanism rotations
    */
-  default void setPosition(double rotations) {}
+  default void runPosition(double rotations) {}
 
   /** Stop roller */
   default void stop() {}
 
-  /** Stop roller and set current position to zero */
-  default void zero() {}
+  /**
+   * Set the current mechanism position
+   *
+   * @param rotations Position in mechanism rotations
+   */
+  default void setPosition(double rotations) {}
 
   /** Set slot configs for closed loop control of the roller. */
   default void setPID(Slot0Configs newConfig) {}

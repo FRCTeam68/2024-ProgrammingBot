@@ -120,17 +120,17 @@ public class RollerSystemIOTalonFX implements RollerSystemIO {
   }
 
   @Override
-  public void setVolts(double volts) {
+  public void runVolts(double volts) {
     talon.setControl(voltageOut.withOutput(volts));
   }
 
   @Override
-  public void setVelocity(double velocity) {
+  public void runVelocity(double velocity) {
     talon.setControl(velocityOut.withVelocity(velocity));
   }
 
   @Override
-  public void setPosition(double rotations) {
+  public void runPosition(double rotations) {
     talon.setControl(positionOut.withPosition(rotations));
   }
 
@@ -140,8 +140,8 @@ public class RollerSystemIOTalonFX implements RollerSystemIO {
   }
 
   @Override
-  public void zero() {
-    talon.setPosition(0);
+  public void setPosition(double rotations) {
+    talon.setPosition(rotations);
   }
 
   @Override

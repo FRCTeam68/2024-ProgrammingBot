@@ -30,7 +30,7 @@ public class WristIOSim implements WristIO {
   @Override
   public void updateInputs(WristIOInputs inputs) {
     if (DriverStation.isDisabled()) {
-      setVolts(0.0);
+      runVolts(0.0);
     } else {
       if (mode == ControlMode.Position) {
         setInputVoltage(controller.calculate(sim.getAngularPositionRotations()));
@@ -53,13 +53,13 @@ public class WristIOSim implements WristIO {
   }
 
   @Override
-  public void setVolts(double volts) {
+  public void runVolts(double volts) {
     mode = ControlMode.Voltage;
     setInputVoltage(volts);
   }
 
   @Override
-  public void setPosition(double position, int slot) {
+  public void runPosition(double position, int slot) {
     mode = ControlMode.Position;
     controller.setPID(slotConfigs[slot].kP, slotConfigs[slot].kI, slotConfigs[slot].kD);
     controller.setSetpoint(Units.degreesToRotations(position));
@@ -67,13 +67,12 @@ public class WristIOSim implements WristIO {
 
   @Override
   public void stop() {
-    setVolts(0.0);
+    runVolts(0.0);
   }
 
   @Override
-  public void zero(double offset) {
-    controller.setSetpoint(offset);
-    sim.setAngle(Units.degreesToRadians(offset));
+  public void setPosition(double elevation) {
+    sim.setAngle(Units.degreesToRadians(elevation));
   }
 
   @Override

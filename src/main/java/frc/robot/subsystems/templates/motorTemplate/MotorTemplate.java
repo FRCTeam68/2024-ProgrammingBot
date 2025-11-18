@@ -86,15 +86,15 @@ public class MotorTemplate {
    *
    * @param inputVolts Voltage to drive motor at
    */
-  public void setVolts(double volts) {
+  public void runVolts(double volts) {
     setpoint = volts;
     mode = ControlMode.Voltage;
-    io.setVolts(volts);
+    io.runVolts(volts);
   }
 
-  public void setVelocity(double velocity, int slot) {
+  public void runVelocity(double velocity, int slot) {
     mode = ControlMode.Velocity;
-    io.setVelocity(velocity, 0);
+    io.runVelocity(velocity, 0);
   }
 
   /**
@@ -102,9 +102,9 @@ public class MotorTemplate {
    *
    * @param position Goal position
    */
-  public void setPosition(double position, int slot) {
+  public void runPosition(double position, int slot) {
     mode = ControlMode.Position;
-    io.setPosition(position, 0);
+    io.runPosition(position, 0);
   }
 
   /** Stop motor */
@@ -113,8 +113,18 @@ public class MotorTemplate {
     io.stop();
   }
 
+  /** Set the current mechanism position to zero */
   public void zero() {
-    io.zero();
+    io.setPosition(0);
+  }
+
+  /**
+   * Set the current mechanism position
+   *
+   * @param rotations Position in mechanism rotations
+   */
+  public void setPosition(double rotations) {
+    io.setPosition(rotations);
   }
 
   /**

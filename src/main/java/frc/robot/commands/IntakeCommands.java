@@ -30,9 +30,9 @@ public class IntakeCommands {
         Commands.sequence(
             Commands.runOnce(() -> wrist.setPosition(wrist.getIntake().getAsDouble())),
             Commands.waitUntil(() -> wrist.atSetpoint()),
-            Commands.runOnce(() -> intake.setVolts(12)),
-            Commands.runOnce(() -> feederLower.setVolts(12)),
-            Commands.runOnce(() -> feederUpper.setVolts(12)),
+            Commands.runOnce(() -> intake.runVolts(12)),
+            Commands.runOnce(() -> feederLower.runVolts(12)),
+            Commands.runOnce(() -> feederUpper.runVolts(12)),
             Commands.waitUntil(() -> noteSensor.isDetected()),
             Commands.runOnce(() -> intake.stop()),
             Commands.runOnce(() -> feederLower.stop()),

@@ -5,6 +5,7 @@ import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.system.plant.LinearSystemId;
+import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
 import frc.robot.Constants;
@@ -30,7 +31,7 @@ public class MotorTemplateIOSim implements MotorTemplateIO {
   @Override
   public void updateInputs(MotorTemplateIOInputs inputs) {
     if (DriverStation.isDisabled()) {
-      setVolts(0);
+      runVolts(0);
     } else {
       if (mode == ControlMode.Velocity) {
         setInputVoltage(controller.calculate(sim.getAngularVelocityRPM() / 60.0));
@@ -50,20 +51,20 @@ public class MotorTemplateIOSim implements MotorTemplateIO {
   }
 
   @Override
-  public void setVolts(double volts) {
+  public void runVolts(double volts) {
     mode = ControlMode.Voltage;
     setInputVoltage(volts);
   }
 
   @Override
-  public void setVelocity(double velocity, int slot) {
+  public void runVelocity(double velocity, int slot) {
     mode = ControlMode.Velocity;
     controller.setPID(slotConfigs[slot].kP, slotConfigs[slot].kI, slotConfigs[slot].kD);
     controller.setSetpoint(velocity);
   }
 
   @Override
-  public void setPosition(double position, int slot) {
+  public void runPosition(double position, int slot) {
     mode = ControlMode.Position;
     controller.setPID(slotConfigs[slot].kP, slotConfigs[slot].kI, slotConfigs[slot].kD);
     controller.setSetpoint(position);
@@ -71,12 +72,12 @@ public class MotorTemplateIOSim implements MotorTemplateIO {
 
   @Override
   public void stop() {
-    setVolts(0);
+    runVolts(0);
   }
 
   @Override
-  public void zero() {
-    sim.setAngle(0);
+  public void setPosition(double rotations) {
+    sim.setAngle(Units.rotationsToRadians(rotations));
   }
 
   @Override

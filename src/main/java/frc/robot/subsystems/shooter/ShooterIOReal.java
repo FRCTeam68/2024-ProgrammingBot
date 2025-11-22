@@ -48,8 +48,8 @@ public class ShooterIOReal implements ShooterIO {
   private final VelocityVoltage velocityOut = new VelocityVoltage(0).withEnableFOC(true);
   private final NeutralOut neutralOut = new NeutralOut();
 
-  public ShooterIOReal(InvertedValue invertedValue) {
-    talon = new TalonFX(33, "rio");
+  public ShooterIOReal(int id, InvertedValue invertedValue) {
+    talon = new TalonFX(id, "rio");
 
     // Configure Motor
     config.MotorOutput.Inverted = invertedValue;

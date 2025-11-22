@@ -10,6 +10,7 @@ public interface VisionIO {
     public CameraType cameraType = null;
     public String name = "";
     public boolean connected = false;
+    public int pipelineIndex = 0;
     public TargetObservation latestTargetObservation =
         new TargetObservation(new Rotation2d(), new Rotation2d());
     public PoseObservation[] poseObservations = new PoseObservation[0];
@@ -44,13 +45,28 @@ public interface VisionIO {
 
   /** Represents an object sample. */
   public static record ObjectObservation(
-      double txCenter, double tyCenter, double width, double height, double confidence) {}
+      double txCenter, double tyCenter, double width, double height, double confidence, ObjectObservationType type) {}
 
   public static enum ObjectObservationType {
-    Coral,
-    Algae,
-    Other
+    CORAL,
+    ALGAE
   }
 
   public default void updateInputs(VisionIOInputs inputs) {}
+
+  public default void setPipline(PipelineType pipeline) {}
+
+  public static enum PipelineType {
+    MEGATAG_2(0),
+    MEGATAG_1_2(1),
+    OBJECT_ALL(2),
+    OBJECT_CORAL(3),
+    OBJECT_ALGAE(4);
+
+    int index;
+
+    PipelineType(int index) {
+      this.index = index;
+    }
+  }
 }

@@ -1,5 +1,7 @@
 package frc.robot.subsystems.vision;
 
+import java.util.function.DoubleBinaryOperator;
+import java.util.function.DoubleUnaryOperator;
 import edu.wpi.first.math.util.Units;
 
 public class VisionConstants {
@@ -36,4 +38,11 @@ public class VisionConstants {
   public static double linearStdDevMegatag2Factor = 0.5; // More stable than full 3D solve
   public static double angularStdDevMegatag2Factor =
       Double.POSITIVE_INFINITY; // No rotation data available
+
+    // Object Detection
+    // TODO: do we want to have this. It is already in the ll setup. It could be confusing.
+    public static double ObjectConfidenceMin = 0;
+    public static DoubleBinaryOperator coralDistanceEquation = (x, y) -> Math.pow(Math.min(x, y), 2) + 10;
+    public static DoubleBinaryOperator algaeDistanceEquation = (x, y) -> Math.pow(Math.min(x, y), 2) + 10;
+    // public static DoubleUnaryOperator objectDistanceEquation = (x) -> Math.pow(x, 2) + 10;
 }

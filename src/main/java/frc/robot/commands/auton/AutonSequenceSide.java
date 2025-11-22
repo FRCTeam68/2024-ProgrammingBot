@@ -53,7 +53,7 @@ public class AutonSequenceSide implements AutonSequence {
       RollerSystem feederUpper,
       NoteSensor noteSensor) {
     return Commands.sequence(
-      Commands.runOnce(() -> System.out.println("index: " + index)),
+        Commands.runOnce(() -> System.out.println("index: " + index)),
         // Shoot preload note
         ShootCommands.setStaticShotConfig(shooter, wrist, ShooterConstants.subwoofer),
         Commands.waitUntil(() -> shooter.atSetpoint()),

@@ -67,12 +67,12 @@ public class WristIOReal implements WristIO {
   private final NeutralOut neutralOut = new NeutralOut();
 
   public WristIOReal() {
-    talon = new TalonFX(33, "rio");
-    followerTalon = new TalonFX(32, "rio");
+    talon = new TalonFX(32, "rio");
+    followerTalon = new TalonFX(33, "rio");
     followerTalon.setControl(new Follower(talon.getDeviceID(), true));
 
     // Configure Motor
-    config.MotorOutput.Inverted = InvertedValue.Clockwise_Positive;
+    config.MotorOutput.Inverted = InvertedValue.CounterClockwise_Positive;
     config.MotorOutput.NeutralMode = NeutralModeValue.Brake;
     // Current limits
     config.CurrentLimits.StatorCurrentLimitEnable = true;
@@ -82,10 +82,11 @@ public class WristIOReal implements WristIO {
     config.CurrentLimits.SupplyCurrentLowerLimit = 40;
     config.CurrentLimits.SupplyCurrentLowerTime = 1;
     // Motion limits
-    config.SoftwareLimitSwitch.ForwardSoftLimitEnable = true;
-    config.SoftwareLimitSwitch.ForwardSoftLimitThreshold = 5.4;
-    config.SoftwareLimitSwitch.ReverseSoftLimitEnable = true;
-    config.SoftwareLimitSwitch.ReverseSoftLimitThreshold = 0;
+    // TODO: configure soft limits
+    // config.SoftwareLimitSwitch.ForwardSoftLimitEnable = true;
+    // config.SoftwareLimitSwitch.ForwardSoftLimitThreshold = 5.4;
+    // config.SoftwareLimitSwitch.ReverseSoftLimitEnable = true;
+    // config.SoftwareLimitSwitch.ReverseSoftLimitThreshold = 0;
     // Feedback
     config.Feedback.SensorToMechanismRatio = reduction;
     tryUntilOk(5, () -> talon.getConfigurator().apply(config, 0.25));

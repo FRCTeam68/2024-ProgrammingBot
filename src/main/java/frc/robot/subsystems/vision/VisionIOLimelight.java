@@ -6,27 +6,36 @@ import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.networktables.DoubleArrayPublisher;
 import edu.wpi.first.networktables.DoubleArraySubscriber;
+import edu.wpi.first.networktables.DoublePublisher;
 import edu.wpi.first.networktables.DoubleSubscriber;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.RobotController;
+import lombok.Getter;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Supplier;
+import org.littletonrobotics.junction.Logger;
+import org.littletonrobotics.junction.inputs.LoggableInputs;
 
 /** IO implementation for real Limelight hardware. */
 public class VisionIOLimelight implements VisionIO {
   private final CameraType cameraType;
   private final String name;
   private final Supplier<Rotation2d> rotationSupplier;
+
   private final DoubleArrayPublisher orientationPublisher;
+  private final DoublePublisher pipelinePublisher;
+  private final DoubleSubscriber pipelineSubscriber;
   private final DoubleSubscriber latencySubscriber;
   private final DoubleSubscriber txSubscriber;
   private final DoubleSubscriber tySubscriber;
   private final DoubleArraySubscriber megatag1Subscriber;
   private final DoubleArraySubscriber megatag2Subscriber;
   private final DoubleArraySubscriber objectSubscriber;
+
+  private int pipelineIndex = -1;
 
   /**
    * Creates a new VisionIOLimelight.
@@ -41,22 +50,25 @@ public class VisionIOLimelight implements VisionIO {
     var table = NetworkTableInstance.getDefault().getTable(name);
     this.rotationSupplier = rotationSupplier;
     orientationPublisher = table.getDoubleArrayTopic("robot_orientation_set").publish();
+    pipelinePublisher = table.getDoubleTopic("pipeline").publish();
+    pipelineSubscriber = table.getDoubleTopic("pipeline").subscribe(0.0);
     latencySubscriber = table.getDoubleTopic("tl").subscribe(0.0);
     txSubscriber = table.getDoubleTopic("tx").subscribe(0.0);
     tySubscriber = table.getDoubleTopic("ty").subscribe(0.0);
     megatag1Subscriber = table.getDoubleArrayTopic("botpose_wpiblue").subscribe(new double[] {});
     megatag2Subscriber =
         table.getDoubleArrayTopic("botpose_orb_wpiblue").subscribe(new double[] {});
-    objectSubscriber = table.getDoubleArrayTopic("targets_Detector").subscribe(new double[] {});
+    objectSubscriber = table.getDoubleArrayTopic("t2d").subscribe(new double[] {});
   }
 
   @Override
   public void updateInputs(VisionIOInputs inputs) {
     inputs.cameraType = cameraType;
-    inputs.name = name;
     // Update connection status based on whether an update has been seen in the last 250ms
     inputs.connected =
         ((RobotController.getFPGATime() - latencySubscriber.getLastChange()) / 1000) < 250;
+    // TODO: is this the best way to handle this?
+    inputs.pipelineIndex = (int) Math.round(pipelineSubscriber.get());
 
     // Update target observation
     inputs.latestTargetObservation =
@@ -66,8 +78,11 @@ public class VisionIOLimelight implements VisionIO {
     // Update orientation for MegaTag 2
     orientationPublisher.accept(
         new double[] {rotationSupplier.get().getDegrees(), 0.0, 0.0, 0.0, 0.0, 0.0});
-    NetworkTableInstance.getDefault()
-        .flush(); // Increases network traffic but recommended by Limelight
+    // Update pipeline
+    if (pipelineIndex != -1 && pipelineIndex != inputs.pipelineIndex)
+      pipelinePublisher.accept(pipelineIndex);
+    // Increases network traffic but recommended by Limelight
+    NetworkTableInstance.getDefault().flush();
 
     // Read new pose observations from NetworkTables
     Set<Integer> tagIds = new HashSet<>();
@@ -159,7 +174,9 @@ public class VisionIOLimelight implements VisionIO {
               1,
 
               // Confidence of observation
-              1));
+              1,
+              
+              ObjectObservationType.ALGAE));
     }
 
     // Save object observations to inputs object
@@ -167,6 +184,11 @@ public class VisionIOLimelight implements VisionIO {
     for (int i = 0; i < objectObservations.size(); i++) {
       inputs.objectObservations[i] = objectObservations.get(i);
     }
+  }
+
+  @Override
+  public void setPipline(PipelineType pipeline) {
+    pipelineIndex = pipeline.index;
   }
 
   /** Parses the 3D pose from a Limelight botpose array. */

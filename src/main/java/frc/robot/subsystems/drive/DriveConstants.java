@@ -19,8 +19,8 @@ public final class DriveConstants {
   public static final String canbus = "rio";
   public static final double trackWidthX = Units.inchesToMeters(22.5); // meters
   public static final double trackWidthY = Units.inchesToMeters(22.5); // meters
-  public static final double driveReduction = 8.142857142857142;
-  public static final double turnReduction = 21.428571428571427;
+  public static final double driveReduction = 5.88;
+  public static final double turnReduction = 12.8;
   public static final double maxLinearVelocity = 4.85; // meters/second
   public static final double wheelRadius = Units.inchesToMeters(2); // meters
   private static final double mass = 68; // kilograms
@@ -88,7 +88,7 @@ public final class DriveConstants {
         .driveMotorId(1)
         .turnMotorId(2)
         .encoderId(15)
-        .encoderOffset(Rotation2d.fromRotations(0.267333984375))
+        .encoderOffset(Rotation2d.fromRotations(-0.15673828125))
         .turnInverted(true)
         .encoderInverted(false)
         .build(),
@@ -97,7 +97,7 @@ public final class DriveConstants {
         .driveMotorId(3)
         .turnMotorId(4)
         .encoderId(16)
-        .encoderOffset(Rotation2d.fromRotations(0.18896484375))
+        .encoderOffset(Rotation2d.fromRotations(-0.135498046875))
         .turnInverted(true)
         .encoderInverted(false)
         .build(),
@@ -106,7 +106,7 @@ public final class DriveConstants {
         .driveMotorId(5)
         .turnMotorId(6)
         .encoderId(17)
-        .encoderOffset(Rotation2d.fromRotations(-0.388671875))
+        .encoderOffset(Rotation2d.fromRotations(-0.433837890625))
         .turnInverted(true)
         .encoderInverted(false)
         .build(),
@@ -115,7 +115,7 @@ public final class DriveConstants {
         .driveMotorId(7)
         .turnMotorId(8)
         .encoderId(18)
-        .encoderOffset(Rotation2d.fromRotations(0.471435546875))
+        .encoderOffset(Rotation2d.fromRotations(0.04833984375))
         .turnInverted(true)
         .encoderInverted(false)
         .build(),

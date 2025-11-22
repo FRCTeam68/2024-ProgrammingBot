@@ -10,7 +10,7 @@ public class AllianceFlipUtil {
   }
 
   public static double applyY(double y) {
-    return (shouldFlip() && FieldConstants.flipType == FlipType.Rotated)
+    return (shouldFlip() && FieldConstants.symmetryType == SymmetryType.Rotated)
         ? FieldConstants.fieldWidth - y
         : y;
   }
@@ -21,7 +21,7 @@ public class AllianceFlipUtil {
 
   public static Rotation2d apply(Rotation2d rotation) {
     return shouldFlip()
-        ? switch (FieldConstants.flipType) {
+        ? switch (FieldConstants.symmetryType) {
           case Mirrored -> Rotation2d.kPi.minus(rotation);
           case Rotated -> rotation.rotateBy(Rotation2d.kPi);
         }
@@ -42,7 +42,7 @@ public class AllianceFlipUtil {
   public static Rotation3d apply(Rotation3d rotation) {
     // TODO: make sure this works as expected
     return shouldFlip()
-        ? switch (FieldConstants.flipType) {
+        ? switch (FieldConstants.symmetryType) {
           case Mirrored -> new Rotation3d(rotation.getX(), rotation.getY(), Math.PI)
               .minus(new Rotation3d(0, 0, rotation.getZ()));
           case Rotated -> rotation.rotateBy(new Rotation3d(0.0, 0.0, Math.PI));
@@ -59,7 +59,7 @@ public class AllianceFlipUtil {
         && DriverStation.getAlliance().get() == DriverStation.Alliance.Red;
   }
 
-  public static enum FlipType {
+  public static enum SymmetryType {
     /** Field with rotational symmetry. */
     Rotated,
 

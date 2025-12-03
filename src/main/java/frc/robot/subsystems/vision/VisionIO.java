@@ -2,13 +2,15 @@ package frc.robot.subsystems.vision;
 
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import frc.robot.subsystems.vision.VisionConstants.CameraInfo;
+import frc.robot.subsystems.vision.VisionConstants.ObjectObservationType;
+import frc.robot.subsystems.vision.VisionConstants.PipelineType;
+import java.util.function.Supplier;
 import org.littletonrobotics.junction.AutoLog;
 
 public interface VisionIO {
   @AutoLog
   public static class VisionIOInputs {
-    public CameraType cameraType = null;
-    public String name = "";
     public boolean connected = false;
     public int pipelineIndex = 0;
     public TargetObservation latestTargetObservation =
@@ -18,14 +20,7 @@ public interface VisionIO {
     public ObjectObservation[] objectObservations = new ObjectObservation[0];
   }
 
-  public static enum CameraType {
-    LL_2,
-    LL_3G,
-    LL_4
-  }
-
   /** Represents the angle to a simple target, not used for pose estimation. */
-  // TODO: are we every going to use this. we would just use poses instead
   public static record TargetObservation(Rotation2d tx, Rotation2d ty) {}
 
   /** Represents a robot pose sample used for pose estimation. */
@@ -39,34 +34,29 @@ public interface VisionIO {
 
   public static enum PoseObservationType {
     MEGATAG_1,
-    MEGATAG_2,
-    PHOTONVISION
+    MEGATAG_2
   }
 
   /** Represents an object sample. */
+  // TODO: do we want to log the confidence. We would need to output and parse json.
   public static record ObjectObservation(
-      double txCenter, double tyCenter, double width, double height, double confidence, ObjectObservationType type) {}
+      double txCenter,
+      double tyCenter,
+      double width,
+      double height,
+      Boolean touchingBottomEdge,
+      Boolean touchingTopEdge,
+      Boolean touchingLeftEdge,
+      Boolean touchingRightEdge,
+      ObjectObservationType type) {}
 
-  public static enum ObjectObservationType {
-    CORAL,
-    ALGAE
-  }
+  public default void initRotationSupplier(Supplier<Rotation2d> rotationSupplier) {}
 
   public default void updateInputs(VisionIOInputs inputs) {}
 
-  public default void setPipline(PipelineType pipeline) {}
-
-  public static enum PipelineType {
-    MEGATAG_2(0),
-    MEGATAG_1_2(1),
-    OBJECT_ALL(2),
-    OBJECT_CORAL(3),
-    OBJECT_ALGAE(4);
-
-    int index;
-
-    PipelineType(int index) {
-      this.index = index;
-    }
+  public default CameraInfo getCameraInfo() {
+    return CameraInfo.LL_2;
   }
+
+  public default void setPipline(PipelineType pipeline) {}
 }

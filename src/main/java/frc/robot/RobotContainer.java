@@ -1,6 +1,8 @@
 package frc.robot;
 
 import com.ctre.phoenix6.configs.SlotConfigs;
+import com.ctre.phoenix6.signals.InvertedValue;
+import com.ctre.phoenix6.signals.NeutralModeValue;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
@@ -20,21 +22,27 @@ import frc.robot.commands.auton.AutonSequenceCenter;
 import frc.robot.commands.auton.AutonSequenceSide;
 import frc.robot.subsystems.NoteVisualizer;
 import frc.robot.subsystems.drive.Drive;
+import frc.robot.subsystems.drive.DriveConstants;
 import frc.robot.subsystems.drive.GyroIO;
+import frc.robot.subsystems.drive.GyroIOPigeon2;
 import frc.robot.subsystems.drive.ModuleIO;
+import frc.robot.subsystems.drive.ModuleIOReal;
 import frc.robot.subsystems.drive.ModuleIOSim;
 import frc.robot.subsystems.rollers.RollerSystem;
 import frc.robot.subsystems.rollers.RollerSystemIO;
 import frc.robot.subsystems.rollers.RollerSystemIOSim;
+import frc.robot.subsystems.rollers.RollerSystemIOTalonFX;
 import frc.robot.subsystems.sensors.NoteSensor;
 import frc.robot.subsystems.shooter.Shooter;
 import frc.robot.subsystems.shooter.ShooterIO;
+import frc.robot.subsystems.shooter.ShooterIOReal;
 import frc.robot.subsystems.shooter.ShooterIOSim;
 import frc.robot.subsystems.vision.Vision;
-import frc.robot.subsystems.vision.VisionIO;
+import frc.robot.subsystems.vision.VisionConstants.CameraInfo;
 import frc.robot.subsystems.vision.VisionIOLimelight;
 import frc.robot.subsystems.wrist.Wrist;
 import frc.robot.subsystems.wrist.WristIO;
+import frc.robot.subsystems.wrist.WristIOReal;
 import frc.robot.subsystems.wrist.WristIOSim;
 import frc.robot.util.AllianceFlipUtil;
 import frc.robot.util.AutonUtil;
@@ -81,59 +89,54 @@ public class RobotContainer {
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
   public RobotContainer() {
     switch (Constants.getMode()) {
-        //   case REAL -> {
-        //     drive =
-        //         new Drive(
-        //             new GyroIOPigeon2(),
-        //             new ModuleIOReal(DriveConstants.moduleConfigs[0]),
-        //             new ModuleIOReal(DriveConstants.moduleConfigs[1]),
-        //             new ModuleIOReal(DriveConstants.moduleConfigs[2]),
-        //             new ModuleIOReal(DriveConstants.moduleConfigs[3]));
+      case REAL -> {
+        drive =
+            new Drive(
+                new GyroIOPigeon2(),
+                new ModuleIOReal(DriveConstants.moduleConfigs[0]),
+                new ModuleIOReal(DriveConstants.moduleConfigs[1]),
+                new ModuleIOReal(DriveConstants.moduleConfigs[2]),
+                new ModuleIOReal(DriveConstants.moduleConfigs[3]));
 
-        //     vision =
-        //         new Vision(
-        //             drive::addVisionMeasurement,
-        //             drive::getPose,
-        //             drive::getFieldVelocity,
-        //             new VisionIOLimelight(
-        //                 CameraType.LL_2, VisionConstants.LL2Name, drive::getRotation));
+        vision = new Vision(drive::addVisionMeasurement, drive::getPose, drive::getFieldVelocity);
+        // new VisionIOLimelight(
+        //     CameraType.LL_2, VisionConstants.LL2Name, drive::getRotation));
 
-        //     wrist = new Wrist(drive::getPose, new WristIOReal());
+        wrist = new Wrist(drive::getPose, new WristIOReal());
 
-        //     shooter =
-        //         new Shooter(
-        //             new ShooterIOReal(33, InvertedValue.Clockwise_Positive),
-        //             new ShooterIOReal(31, InvertedValue.CounterClockwise_Positive));
+        shooter =
+            new Shooter(
+                new ShooterIOReal(33, InvertedValue.Clockwise_Positive),
+                new ShooterIOReal(31, InvertedValue.CounterClockwise_Positive));
 
-        //     intake =
-        //         new RollerSystem(
-        //             "Intake",
-        //             new RollerSystemIOTalonFX(
-        //                 20,
-        //                 "rio",
-        //                 40,
-        //                 InvertedValue.CounterClockwise_Positive,
-        //                 NeutralModeValue.Coast,
-        //                 1));
+        intake =
+            new RollerSystem(
+                "Intake",
+                new RollerSystemIOTalonFX(
+                    20,
+                    "rio",
+                    40,
+                    InvertedValue.CounterClockwise_Positive,
+                    NeutralModeValue.Coast,
+                    1));
 
-        //     feederLower =
-        //         new RollerSystem(
-        //             "FeederLower",
-        //             new RollerSystemIOTalonFX(
-        //                 35,
-        //                 "rio",
-        //                 40,
-        //                 InvertedValue.CounterClockwise_Positive,
-        //                 NeutralModeValue.Coast,
-        //                 1));
-        //     feederUpper =
-        //         new RollerSystem(
-        //             "FeederUpper",
-        //             new RollerSystemIOTalonFX(
-        //                 36, "rio", 40, InvertedValue.Clockwise_Positive, NeutralModeValue.Brake,
-        // 1));
-        //   }
-      case SIM, REAL -> {
+        feederLower =
+            new RollerSystem(
+                "FeederLower",
+                new RollerSystemIOTalonFX(
+                    35,
+                    "rio",
+                    40,
+                    InvertedValue.CounterClockwise_Positive,
+                    NeutralModeValue.Coast,
+                    1));
+        feederUpper =
+            new RollerSystem(
+                "FeederUpper",
+                new RollerSystemIOTalonFX(
+                    36, "rio", 40, InvertedValue.Clockwise_Positive, NeutralModeValue.Brake, 1));
+      }
+      case SIM -> {
         drive =
             new Drive(
                 new GyroIO() {},
@@ -147,8 +150,7 @@ public class RobotContainer {
                 drive::addVisionMeasurement,
                 drive::getPose,
                 drive::getFieldVelocity,
-                new VisionIOLimelight(
-                    VisionIO.CameraType.LL_3G, "limelight-reef", drive::getRotation));
+                new VisionIOLimelight(CameraInfo.LL_4));
 
         wrist = new Wrist(drive::getPose, new WristIOSim());
 
@@ -178,8 +180,7 @@ public class RobotContainer {
                 drive::addVisionMeasurement,
                 drive::getPose,
                 drive::getFieldVelocity,
-                new VisionIOLimelight(
-                    VisionIO.CameraType.LL_3G, "limelight-reef", drive::getRotation));
+                new VisionIOLimelight(CameraInfo.LL_4));
 
         wrist = new Wrist(drive::getPose, new WristIO() {});
 

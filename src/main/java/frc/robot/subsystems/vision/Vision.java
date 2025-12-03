@@ -9,25 +9,20 @@ import edu.wpi.first.math.filter.Debouncer.DebounceType;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
-import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
 import frc.robot.Constants.Mode;
 import frc.robot.FieldConstants;
-import frc.robot.subsystems.vision.VisionIO.ObjectObservationType;
-import frc.robot.subsystems.vision.VisionIO.PipelineType;
 import frc.robot.subsystems.vision.VisionIO.PoseObservationType;
-import lombok.Getter;
-
 import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Supplier;
+import lombok.Getter;
 import org.littletonrobotics.junction.Logger;
 
 public class Vision extends SubsystemBase {
@@ -35,13 +30,14 @@ public class Vision extends SubsystemBase {
   private final Supplier<Pose2d> poseSupplier;
   private final Supplier<ChassisSpeeds> chassisSpeedSupplier;
   private final VisionIO[] io;
+  private final CameraInfo[] cameraInfo;
   private final VisionIOInputsAutoLogged[] inputs;
   private final Debouncer[] connectedDebouncers;
   private final Alert[] disconnectedAlerts;
 
   // TODO: how do we handle empty targets. null could cause crashes
-  @Getter private Pose2d coralTarget = null;
-  @Getter private Pose2d algaeTarget = null;
+  @Getter private Pose3d coralTarget = null;
+  @Getter private Pose3d algaeTarget = null;
 
   public Vision(
       VisionConsumer consumer,
@@ -53,19 +49,19 @@ public class Vision extends SubsystemBase {
     this.chassisSpeedSupplier = chassisSpeedSupplier;
     this.io = io;
 
-    // Initialize inputs
-    // and disconnected alerts
+    // Initialize camera specific information
+    cameraInfo = new CameraInfo[io.length];
     inputs = new VisionIOInputsAutoLogged[io.length];
     connectedDebouncers = new Debouncer[io.length];
     disconnectedAlerts = new Alert[io.length];
     for (int i = 0; i < inputs.length; i++) {
+      io[i].initRotationSupplier(() -> poseSupplier.get().getRotation());
+      cameraInfo[i] = io[i].getCameraInfo();
       inputs[i] = new VisionIOInputsAutoLogged();
       connectedDebouncers[i] = new Debouncer(0.5, DebounceType.kFalling);
-      // TODO: does this actually get the proper name. It is before update inputs is called
-      disconnectedAlerts[i] = new Alert(inputs[i].name + " is disconnected.", AlertType.kWarning);
+      disconnectedAlerts[i] =
+          new Alert("Camera" + cameraInfo[i].name + " is disconnected.", AlertType.kError);
     }
-
-    io[0].setPipline(PipelineType.MEGATAG_2);
   }
 
   /**
@@ -99,7 +95,7 @@ public class Vision extends SubsystemBase {
   public void periodic() {
     for (int i = 0; i < io.length; i++) {
       io[i].updateInputs(inputs[i]);
-      Logger.processInputs("Vision/" + inputs[i].name, inputs[i]);
+      Logger.processInputs(cameraInfo[i].name, inputs[i]);
     }
 
     // Initialize logging values
@@ -107,6 +103,8 @@ public class Vision extends SubsystemBase {
     List<Pose3d> allRobotPoses = new LinkedList<>();
     List<Pose3d> allRobotPosesAccepted = new LinkedList<>();
     List<Pose3d> allRobotPosesRejected = new LinkedList<>();
+    List<Pose3d> allObjectPosesCoral = new LinkedList<>();
+    List<Pose3d> allObjectPosesAlgae = new LinkedList<>();
 
     // Loop over cameras
     for (int cameraIndex = 0; cameraIndex < io.length; cameraIndex++) {
@@ -192,20 +190,9 @@ public class Vision extends SubsystemBase {
           linearStdDev *= linearStdDevMegatag2Factor;
           angularStdDev *= angularStdDevMegatag2Factor;
         }
-        switch (inputs[cameraIndex].cameraType) {
-          case LL_2:
-            linearStdDev *= LL2StdDevFactor;
-            angularStdDev *= LL2StdDevFactor;
-            break;
-          case LL_3G:
-            linearStdDev *= LL3GStdDevFactor;
-            angularStdDev *= LL3GStdDevFactor;
-            break;
-          case LL_4:
-            linearStdDev *= LL4StdDevFactor;
-            angularStdDev *= LL4StdDevFactor;
-            break;
-        }
+
+        linearStdDev *= cameraInfo[cameraIndex].MTStdDevFactor;
+        angularStdDev *= cameraInfo[cameraIndex].MTStdDevFactor;
 
         // Send vision observation
         consumer.accept(
@@ -216,32 +203,32 @@ public class Vision extends SubsystemBase {
 
       // Log camera datadata
       Logger.recordOutput(
-          "Vision/" + inputs[cameraIndex].name + "/TagPoses",
+          "Vision/" + cameraInfo[cameraIndex].name + "/TagPoses",
           tagPoses.toArray(new Pose3d[tagPoses.size()]));
       Logger.recordOutput(
-          "Vision/" + inputs[cameraIndex].name + "/MegaTag1/RobotPoses",
+          "Vision/" + cameraInfo[cameraIndex].name + "/MegaTag1/RobotPosesAll",
           robotPosesMT1.toArray(new Pose3d[robotPosesMT1.size()]));
       Logger.recordOutput(
-          "Vision/" + inputs[cameraIndex].name + "/MegaTag2/RobotPoses",
+          "Vision/" + cameraInfo[cameraIndex].name + "/MegaTag2/RobotPosesAll",
           robotPosesMT2.toArray(new Pose3d[robotPosesMT2.size()]));
       Logger.recordOutput(
-          "Vision/" + inputs[cameraIndex].name + "/MegaTag1/RobotPosesAccepted",
+          "Vision/" + cameraInfo[cameraIndex].name + "/MegaTag1/RobotPosesAccepted",
           robotPosesAcceptedMT1.toArray(new Pose3d[robotPosesAcceptedMT1.size()]));
       Logger.recordOutput(
-          "Vision/" + inputs[cameraIndex].name + "/MegaTag1/RobotPosesRejected",
+          "Vision/" + cameraInfo[cameraIndex].name + "/MegaTag1/RobotPosesRejected",
           robotPosesRejectedMT1.toArray(new Pose3d[robotPosesRejectedMT1.size()]));
       Logger.recordOutput(
-          "Vision/" + inputs[cameraIndex].name + "/MegaTag2/RobotPosesAccepted",
+          "Vision/" + cameraInfo[cameraIndex].name + "/MegaTag2/RobotPosesAccepted",
           robotPosesAcceptedMT2.toArray(new Pose3d[robotPosesAcceptedMT2.size()]));
       Logger.recordOutput(
-          "Vision/" + inputs[cameraIndex].name + "/MegaTag2/RobotPosesRejected",
+          "Vision/" + cameraInfo[cameraIndex].name + "/MegaTag2/RobotPosesRejected",
           robotPosesRejectedMT2.toArray(new Pose3d[robotPosesRejectedMT2.size()]));
       allTagPoses.addAll(tagPoses);
       allRobotPoses.addAll(robotPosesMT1);
       allRobotPoses.addAll(robotPosesMT2);
       allRobotPosesAccepted.addAll(robotPosesAcceptedMT1);
-      allRobotPosesRejected.addAll(robotPosesRejectedMT1);
       allRobotPosesAccepted.addAll(robotPosesAcceptedMT2);
+      allRobotPosesRejected.addAll(robotPosesRejectedMT1);
       allRobotPosesRejected.addAll(robotPosesRejectedMT2);
 
       List<Pose2d> objectPoseCoral = new LinkedList<>();
@@ -249,28 +236,29 @@ public class Vision extends SubsystemBase {
 
       // Loop over object observations
       for (var observation : inputs[cameraIndex].objectObservations) {
-        if (observation.confidence() > VisionConstants.ObjectConfidenceMin) {
         if (observation.type() == ObjectObservationType.CORAL) {
-          double distance = coralDistanceEquation.applyAsDouble(observation.height(), observation.width());
+          double distance =
+              coralDistanceEquation.applyAsDouble(observation.height(), observation.width());
           // TODO: can this be made more simple
           // objectPoseCoral.add(poseSupplier.get().t);
         }
       }
-      }
 
       Logger.recordOutput(
-        "Vision/" + inputs[cameraIndex].name + "/ObjectDetection/Coral",
-        objectPoseCoral.toArray(new Pose3d[objectPoseCoral.size()]));
-        Logger.recordOutput(
-          "Vision/" + inputs[cameraIndex].name + "/ObjectDetection/Algae",
+          "Vision/" + cameraInfo[cameraIndex].name + "/ObjectDetection/CoralPoses",
+          objectPoseCoral.toArray(new Pose3d[objectPoseCoral.size()]));
+      Logger.recordOutput(
+          "Vision/" + cameraInfo[cameraIndex].name + "/ObjectDetection/AlgaePoses",
           objectPoseAlgae.toArray(new Pose3d[objectPoseAlgae.size()]));
     }
+
+    // TODO: calculate target objects
 
     // Log summary data
     Logger.recordOutput(
         "Vision/Summary/TagPoses", allTagPoses.toArray(new Pose3d[allTagPoses.size()]));
     Logger.recordOutput(
-        "Vision/Summary/RobotPoses", allRobotPoses.toArray(new Pose3d[allRobotPoses.size()]));
+        "Vision/Summary/RobotPosesAll", allRobotPoses.toArray(new Pose3d[allRobotPoses.size()]));
     Logger.recordOutput(
         "Vision/Summary/RobotPosesAccepted",
         allRobotPosesAccepted.toArray(new Pose3d[allRobotPosesAccepted.size()]));
@@ -278,8 +266,18 @@ public class Vision extends SubsystemBase {
         "Vision/Summary/RobotPosesRejected",
         allRobotPosesRejected.toArray(new Pose3d[allRobotPosesRejected.size()]));
 
-        Logger.recordOutput("Vision/Summary/CoralTarget", (coralTarget != null) ? new Pose2d[] {coralTarget} : new Pose2d[] {});
-        Logger.recordOutput("Vision/Summary/AlgaeTarget", (algaeTarget != null) ? new Pose2d[] {algaeTarget} : new Pose2d[] {});
+    Logger.recordOutput(
+        "Vision/Summary/CoralPosesAll",
+        allObjectPosesCoral.toArray(new Pose3d[allObjectPosesCoral.size()]));
+    Logger.recordOutput(
+        "Vision/Summary/AlgaePosesAll",
+        allObjectPosesAlgae.toArray(new Pose3d[allObjectPosesAlgae.size()]));
+    Logger.recordOutput(
+        "Vision/Summary/CoralTargetPose",
+        (coralTarget != null) ? new Pose3d[] {coralTarget} : new Pose3d[] {});
+    Logger.recordOutput(
+        "Vision/Summary/AlgaeTargetPose",
+        (algaeTarget != null) ? new Pose3d[] {algaeTarget} : new Pose3d[] {});
   }
 
   @FunctionalInterface

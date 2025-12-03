@@ -10,21 +10,18 @@ import edu.wpi.first.networktables.DoublePublisher;
 import edu.wpi.first.networktables.DoubleSubscriber;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.RobotController;
-import lombok.Getter;
+import frc.robot.subsystems.vision.VisionConstants.CameraInfo;
+import frc.robot.subsystems.vision.VisionConstants.ObjectObservationType;
+import frc.robot.subsystems.vision.VisionConstants.PipelineType;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Supplier;
-import org.littletonrobotics.junction.Logger;
-import org.littletonrobotics.junction.inputs.LoggableInputs;
 
 /** IO implementation for real Limelight hardware. */
 public class VisionIOLimelight implements VisionIO {
-  private final CameraType cameraType;
-  private final String name;
-  private final Supplier<Rotation2d> rotationSupplier;
-
+  private final CameraInfo cameraInfo;
   private final DoubleArrayPublisher orientationPublisher;
   private final DoublePublisher pipelinePublisher;
   private final DoubleSubscriber pipelineSubscriber;
@@ -35,6 +32,7 @@ public class VisionIOLimelight implements VisionIO {
   private final DoubleArraySubscriber megatag2Subscriber;
   private final DoubleArraySubscriber objectSubscriber;
 
+  private Supplier<Rotation2d> rotationSupplier = () -> new Rotation2d();
   private int pipelineIndex = -1;
 
   /**
@@ -43,12 +41,10 @@ public class VisionIOLimelight implements VisionIO {
    * @param name The configured name of the Limelight.
    * @param rotationSupplier Supplier for the current estimated rotation, used for MegaTag 2.
    */
-  public VisionIOLimelight(
-      CameraType cameraType, String name, Supplier<Rotation2d> rotationSupplier) {
-    this.cameraType = cameraType;
-    this.name = name;
-    var table = NetworkTableInstance.getDefault().getTable(name);
-    this.rotationSupplier = rotationSupplier;
+  public VisionIOLimelight(CameraInfo cameraInfo) {
+    this.cameraInfo = cameraInfo;
+
+    var table = NetworkTableInstance.getDefault().getTable(cameraInfo.name);
     orientationPublisher = table.getDoubleArrayTopic("robot_orientation_set").publish();
     pipelinePublisher = table.getDoubleTopic("pipeline").publish();
     pipelineSubscriber = table.getDoubleTopic("pipeline").subscribe(0.0);
@@ -58,17 +54,22 @@ public class VisionIOLimelight implements VisionIO {
     megatag1Subscriber = table.getDoubleArrayTopic("botpose_wpiblue").subscribe(new double[] {});
     megatag2Subscriber =
         table.getDoubleArrayTopic("botpose_orb_wpiblue").subscribe(new double[] {});
-    objectSubscriber = table.getDoubleArrayTopic("t2d").subscribe(new double[] {});
+    objectSubscriber = table.getDoubleArrayTopic("rawdetections").subscribe(new double[] {});
+  }
+
+  @Override
+  public void initRotationSupplier(Supplier<Rotation2d> rotationSupplier) {
+    this.rotationSupplier = rotationSupplier;
   }
 
   @Override
   public void updateInputs(VisionIOInputs inputs) {
-    inputs.cameraType = cameraType;
     // Update connection status based on whether an update has been seen in the last 250ms
     inputs.connected =
         ((RobotController.getFPGATime() - latencySubscriber.getLastChange()) / 1000) < 250;
-    // TODO: is this the best way to handle this?
-    inputs.pipelineIndex = (int) Math.round(pipelineSubscriber.get());
+
+    // Update active pipeline
+    inputs.pipelineIndex = (int) pipelineSubscriber.get();
 
     // Update target observation
     inputs.latestTargetObservation =
@@ -78,9 +79,16 @@ public class VisionIOLimelight implements VisionIO {
     // Update orientation for MegaTag 2
     orientationPublisher.accept(
         new double[] {rotationSupplier.get().getDegrees(), 0.0, 0.0, 0.0, 0.0, 0.0});
+
     // Update pipeline
-    if (pipelineIndex != -1 && pipelineIndex != inputs.pipelineIndex)
-      pipelinePublisher.accept(pipelineIndex);
+    if (pipelineIndex != -1) {
+      if (pipelineIndex != inputs.pipelineIndex) {
+        pipelinePublisher.accept(pipelineIndex);
+      } else {
+        pipelineIndex = -1;
+      }
+    }
+
     // Increases network traffic but recommended by Limelight
     NetworkTableInstance.getDefault().flush();
 
@@ -147,7 +155,7 @@ public class VisionIOLimelight implements VisionIO {
       inputs.poseObservations[i] = poseObservations.get(i);
     }
 
-    // Save tag IDs to inputs objects
+    // Save tag IDs to inputs object
     inputs.tagIds = new int[tagIds.size()];
     int n = 0;
     for (int id : tagIds) {
@@ -157,26 +165,36 @@ public class VisionIOLimelight implements VisionIO {
     // Read new object observations from NetworkTables
     List<ObjectObservation> objectObservations = new LinkedList<>();
 
-    for (var rawSample : objectSubscriber.readQueue()) {
-      if (rawSample.value.length == 0) continue;
+    var rawSample = objectSubscriber.get(new double[] {});
+    for (int i = 0; i < rawSample.length; i += 12) {
       objectObservations.add(
           new ObjectObservation(
               // Center X
-              1,
+              rawSample[i + 1],
 
               // Center y
-              1,
+              rawSample[i + 2],
 
               // Width
-              1,
+              rawSample[i + 6] - rawSample[i + 4],
 
               // Height
-              1,
+              rawSample[i + 11] - rawSample[i + 5],
 
-              // Confidence of observation
-              1,
-              
-              ObjectObservationType.ALGAE));
+              // Touching bottom edge
+              (rawSample[i + 5] <= cameraInfo.objectDetectionEdges[0]),
+
+              // Touching top edge
+              (rawSample[i + 11] >= cameraInfo.objectDetectionEdges[1]),
+
+              // Touching left edge
+              (rawSample[i + 4] <= cameraInfo.objectDetectionEdges[2]),
+
+              // Touching right edge
+              (rawSample[i + 6] >= cameraInfo.objectDetectionEdges[3]),
+
+              // Observation id
+              ObjectObservationType.values()[(int) i]));
     }
 
     // Save object observations to inputs object
@@ -184,6 +202,11 @@ public class VisionIOLimelight implements VisionIO {
     for (int i = 0; i < objectObservations.size(); i++) {
       inputs.objectObservations[i] = objectObservations.get(i);
     }
+  }
+
+  @Override
+  public CameraInfo getCameraInfo() {
+    return cameraInfo;
   }
 
   @Override

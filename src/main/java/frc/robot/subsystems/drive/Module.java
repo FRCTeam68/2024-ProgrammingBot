@@ -10,6 +10,7 @@ import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 import frc.robot.Constants;
+import frc.robot.util.LoggedTracer;
 import frc.robot.util.LoggedTunableNumber;
 import org.littletonrobotics.junction.Logger;
 
@@ -104,7 +105,9 @@ public class Module {
 
   public void updateInputs() {
     io.updateInputs(inputs);
+    LoggedTracer.record("DriveUpdateInputsModule-" + inputsKey);
     Logger.processInputs(inputsKey, inputs);
+    LoggedTracer.record("DriveInputsModule-" + inputsKey);
   }
 
   public void periodic() {

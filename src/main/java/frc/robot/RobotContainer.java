@@ -1,16 +1,14 @@
 package frc.robot;
 
 import com.ctre.phoenix6.configs.SlotConfigs;
-import edu.wpi.first.math.geometry.Pose2d;
-import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.geometry.Translation2d;
+import com.ctre.phoenix6.signals.InvertedValue;
+import com.ctre.phoenix6.signals.NeutralModeValue;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
-import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandPS4Controller;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import frc.robot.commands.DriveCommands;
@@ -20,15 +18,20 @@ import frc.robot.commands.auton.AutonSequenceCenter;
 import frc.robot.commands.auton.AutonSequenceSide;
 import frc.robot.subsystems.NoteVisualizer;
 import frc.robot.subsystems.drive.Drive;
+import frc.robot.subsystems.drive.DriveConstants;
 import frc.robot.subsystems.drive.GyroIO;
+import frc.robot.subsystems.drive.GyroIOPigeon2;
 import frc.robot.subsystems.drive.ModuleIO;
+import frc.robot.subsystems.drive.ModuleIOReal;
 import frc.robot.subsystems.drive.ModuleIOSim;
 import frc.robot.subsystems.rollers.RollerSystem;
 import frc.robot.subsystems.rollers.RollerSystemIO;
 import frc.robot.subsystems.rollers.RollerSystemIOSim;
+import frc.robot.subsystems.rollers.RollerSystemIOTalonFX;
 import frc.robot.subsystems.sensors.NoteSensor;
 import frc.robot.subsystems.shooter.Shooter;
 import frc.robot.subsystems.shooter.ShooterIO;
+import frc.robot.subsystems.shooter.ShooterIOReal;
 import frc.robot.subsystems.shooter.ShooterIOSim;
 import frc.robot.subsystems.vision.Vision;
 import frc.robot.subsystems.vision.VisionConstants.CameraInfo;
@@ -36,7 +39,6 @@ import frc.robot.subsystems.vision.VisionIOLimelight;
 import frc.robot.subsystems.wrist.Wrist;
 import frc.robot.subsystems.wrist.WristIO;
 import frc.robot.subsystems.wrist.WristIOSim;
-import frc.robot.util.AllianceFlipUtil;
 import frc.robot.util.AutonUtil;
 import frc.robot.util.FollowPathUtil;
 import org.littletonrobotics.junction.networktables.LoggedDashboardChooser;
@@ -99,7 +101,7 @@ public class RobotContainer {
 
         //     shooter =
         //         new Shooter(
-        //             new ShooterIOReal(33, InvertedValue.Clockwise_Positive),
+        //             new ShooterIOReal(30, InvertedValue.Clockwise_Positive),
         //             new ShooterIOReal(31, InvertedValue.CounterClockwise_Positive));
 
         //     intake =
@@ -107,7 +109,7 @@ public class RobotContainer {
         //             "Intake",
         //             new RollerSystemIOTalonFX(
         //                 20,
-        //                 "rio",
+        //                 "*",
         //                 40,
         //                 InvertedValue.CounterClockwise_Positive,
         //                 NeutralModeValue.Coast,
@@ -130,7 +132,65 @@ public class RobotContainer {
         //                 36, "rio", 40, InvertedValue.Clockwise_Positive, NeutralModeValue.Brake,
         // 1));
         //   }
-      case SIM, REAL -> {
+      case REAL -> {
+        drive =
+            new Drive(
+                new GyroIOPigeon2(),
+                new ModuleIOReal(DriveConstants.moduleConfigs[0]),
+                new ModuleIOReal(DriveConstants.moduleConfigs[1]),
+                new ModuleIOReal(DriveConstants.moduleConfigs[2]),
+                new ModuleIOReal(DriveConstants.moduleConfigs[3]));
+
+        // drive =
+        //     new Drive(
+        //         new GyroIOPigeon2(),
+        //         new ModuleIOReal(DriveConstants.moduleConfigs[0]),
+        //         new ModuleIO() {},
+        //         new ModuleIO() {},
+        //         new ModuleIO() {});
+
+        // vision = new Vision(drive::addVisionMeasurement, drive::getPose,
+        // drive::getFieldVelocity);
+        // new VisionIOLimelight(
+        //     CameraType.LL_2, VisionConstants.LL2Name, drive::getRotation));
+
+        // wrist = new Wrist(() -> new Pose2d(), new WristIO() {});
+
+        shooter =
+            new Shooter(
+                new ShooterIOReal(30, InvertedValue.Clockwise_Positive),
+                new ShooterIOReal(31, InvertedValue.CounterClockwise_Positive));
+
+        intake =
+            new RollerSystem(
+                "Intake",
+                new RollerSystemIOTalonFX(
+                    20,
+                    "*",
+                    40,
+                    InvertedValue.CounterClockwise_Positive,
+                    NeutralModeValue.Coast,
+                    1));
+
+        // intake = new RollerSystem("Intake", new RollerSystemIO() {});
+
+        feederLower =
+            new RollerSystem(
+                "FeederLower",
+                new RollerSystemIOTalonFX(
+                    35,
+                    "rio",
+                    40,
+                    InvertedValue.CounterClockwise_Positive,
+                    NeutralModeValue.Coast,
+                    1));
+        feederUpper =
+            new RollerSystem(
+                "FeederUpper",
+                new RollerSystemIOTalonFX(
+                    36, "rio", 40, InvertedValue.Clockwise_Positive, NeutralModeValue.Brake, 1));
+      }
+      case SIM -> {
         drive =
             new Drive(
                 new GyroIO() {},
@@ -188,7 +248,7 @@ public class RobotContainer {
       }
     }
 
-    intake.initPID(new SlotConfigs().withKP(5).withKD(0).withKS(0));
+    // intake.initPID(new SlotConfigs().withKP(5).withKD(0).withKS(0));
 
     feederLower.initPID(new SlotConfigs().withKP(10).withKD(0).withKS(0));
 
@@ -196,7 +256,8 @@ public class RobotContainer {
 
     noteSensor = new NoteSensor();
 
-    noteVisualizer = new NoteVisualizer(drive::getPose, wrist::getPosition, noteSensor::isDetected);
+    // noteVisualizer = new NoteVisualizer(drive::getPose, wrist::getPosition,
+    // noteSensor::isDetected);
 
     // Set up dashboard auto chooser
     autonChooser = new LoggedDashboardChooser<>("Auto Chooser");
@@ -219,58 +280,58 @@ public class RobotContainer {
             () -> -driverController.getLeftX(),
             () -> -driverController.getRightX()));
 
-    driverController
-        .start()
-        .onTrue(
-            Commands.runOnce(
-                () ->
-                    drive.setPose(
-                        new Pose2d(
-                            drive.getPose().getTranslation(),
-                            AllianceFlipUtil.shouldFlip()
-                                ? new Rotation2d()
-                                : new Rotation2d(Math.PI)))));
-
-    driverController
-        .leftTrigger()
-        .onTrue(
-            // Commands.parallel(
-            DriveCommands.joystickDriveAtTarget(
-                drive,
-                () -> -driverController.getLeftY(),
-                () -> -driverController.getLeftX(),
-                () -> new Translation2d(1, 1)));
-    // noteSensor.automaticSimulatedNote(3))
-    // .onlyIf(
-    //     () ->
-    //         Constants.getMode() == Mode.SIM && noteSensor.getAutomaticNoteSim().get()));
-    driverController
-        .rightTrigger()
-        .onTrue(Commands.runOnce(() -> shooter.runVelocity(50, 0, 100, 0)));
-    driverController.rightBumper().onTrue(Commands.runOnce(() -> shooter.runVolts(6, 2)));
     // driverController
-    //     .rightBumper()
+    //     .start()
     //     .onTrue(
-    //         IntakeCommands.Intake(
-    //             intake, feederLower, feederUpper, wrist, () -> noteSensor.isHaveNote()));
+    //         Commands.runOnce(
+    //             () ->
+    //                 drive.setPose(
+    //                     new Pose2d(
+    //                         drive.getPose().getTranslation(),
+    //                         AllianceFlipUtil.shouldFlip()
+    //                             ? new Rotation2d()
+    //                             : new Rotation2d(Math.PI)))));
 
-    driverController
-        .povLeft()
-        .whileTrue(
-            DriveCommands.AutopilotDriveToPose(
-                drive, () -> new Pose2d(8, 1, new Rotation2d()), null));
+    // driverController
+    //     .leftTrigger()
+    //     .onTrue(
+    //         // Commands.parallel(
+    //         DriveCommands.joystickDriveAtTarget(
+    //             drive,
+    //             () -> -driverController.getLeftY(),
+    //             () -> -driverController.getLeftX(),
+    //             () -> new Translation2d(1, 1)));
+    // // noteSensor.automaticSimulatedNote(3))
+    // // .onlyIf(
+    // //     () ->
+    // //         Constants.getMode() == Mode.SIM && noteSensor.getAutomaticNoteSim().get()));
+    // driverController
+    //     .rightTrigger()
+    //     .onTrue(Commands.runOnce(() -> shooter.runVelocity(50, 0, 100, 0)));
+    // driverController.rightBumper().onTrue(Commands.runOnce(() -> shooter.runVolts(6, 2)));
+    // // driverController
+    // //     .rightBumper()
+    // //     .onTrue(
+    // //         IntakeCommands.Intake(
+    // //             intake, feederLower, feederUpper, wrist, () -> noteSensor.isHaveNote()));
 
-    driverController
-        .back()
-        .onTrue(
-            Commands.runOnce(
-                    () ->
-                        drive.setPose(
-                            new Pose2d(
-                                drive.getPose().getTranslation(),
-                                AllianceFlipUtil.apply(new Rotation2d(0)))))
-                .ignoringDisable(true));
-    driverController.start().onTrue(Commands.runOnce(() -> stopSubsystems()));
+    // driverController
+    //     .povLeft()
+    //     .whileTrue(
+    //         DriveCommands.AutopilotDriveToPose(
+    //             drive, () -> new Pose2d(8, 1, new Rotation2d()), null));
+
+    // driverController
+    //     .back()
+    //     .onTrue(
+    //         Commands.runOnce(
+    //                 () ->
+    //                     drive.setPose(
+    //                         new Pose2d(
+    //                             drive.getPose().getTranslation(),
+    //                             AllianceFlipUtil.apply(new Rotation2d(0)))))
+    //             .ignoringDisable(true));
+    // driverController.start().onTrue(Commands.runOnce(() -> stopSubsystems()));
   }
 
   /**
@@ -291,10 +352,10 @@ public class RobotContainer {
   /** Stops all subsystems and cancels any scheduled commands. */
   public void stopSubsystems() {
     CommandScheduler.getInstance().cancelAll();
-    drive.stop();
+    // drive.stop();
     shooter.stop();
-    wrist.stop();
-    intake.stop();
+    // wrist.stop();
+    // intake.stop();
     feederLower.stop();
     feederUpper.stop();
   }

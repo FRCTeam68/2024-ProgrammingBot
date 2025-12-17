@@ -36,12 +36,17 @@ public class PhoenixUtil {
 
   /** Refresh all registered signals. */
   public static void refreshAll() {
-    if (canivoreSignals.length > 0) {
-      BaseStatusSignal.refreshAll(canivoreSignals);
-    }
-    if (rioSignals.length > 0) {
-      BaseStatusSignal.refreshAll(rioSignals);
-    }
+    // if (canivoreSignals.length > 0) {
+    //   var canivorestat = BaseStatusSignal.refreshAll(canivoreSignals);
+    //   Logger.recordOutput("test/canivore", canivorestat.isOK());
+    // }
+    // if (rioSignals.length > 0) {
+    //   var riostat = BaseStatusSignal.refreshAll(rioSignals);
+    //   Logger.recordOutput("test/rio", riostat.isOK());
+    //   // for (int i = 0; i < rioSignals.length; i++) {
+    //   //   Logger.recordOutput("test/rio"+rioSignals[i].getName(), rioSignals[i].);
+    //   // }
+    // }
   }
 
   public static enum ControlMode {

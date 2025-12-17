@@ -1,8 +1,6 @@
 package frc.robot;
 
 import com.ctre.phoenix6.SignalLogger;
-import com.pathplanner.lib.commands.FollowPathCommand;
-import com.pathplanner.lib.commands.PathfindingCommand;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Threads;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -10,7 +8,6 @@ import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import frc.robot.util.CANUtil;
 import frc.robot.util.LoggedTracer;
 import frc.robot.util.PhoenixUtil;
-import org.littletonrobotics.junction.AutoLogOutputManager;
 import org.littletonrobotics.junction.LogFileUtil;
 import org.littletonrobotics.junction.LoggedRobot;
 import org.littletonrobotics.junction.Logger;
@@ -78,28 +75,28 @@ public class Robot extends LoggedRobot {
     // Start AdvantageKit logger
     // TODO: 2025 code has a comment sying this should be after RobotContainer. The template has it
     // before
-    AutoLogOutputManager.addObject(new RobotState());
-    Logger.start();
+    // AutoLogOutputManager.addObject(new RobotState());
 
     // CTRE Hoot logging
     // do not call the setPath and hoot log will be logged to rio at "/home/lvuser/logs"
     SignalLogger.enableAutoLogging(false);
     // SignalLogger.setPath("//media/sda1/logs");
     // SignalLogger.start();
-
+    CANUtil.registerCanivore();
     // Instantiate our RobotContainer. This will perform all our button bindings.
     robotContainer = new RobotContainer();
-
+    Logger.start();
     // Warmup pathplanner libraries
     // This must be done after instantiate RobotContainer
     // TODO: These are 2 different commands. Do we need both?
-    FollowPathCommand.warmupCommand().schedule();
-    PathfindingCommand.warmupCommand().schedule();
+    // FollowPathCommand.warmupCommand().schedule();
+    // PathfindingCommand.warmupCommand().schedule();
 
     // Threads.setCurrentThreadPriority(true, 1);
 
-    CommandScheduler.getInstance()
-        .onCommandInitialize((Command command) -> Logger.recordOutput("test", command.getName()));
+    // CommandScheduler.getInstance()
+    //     .onCommandInitialize((Command command) -> Logger.recordOutput("test",
+    // command.getName()));
   }
 
   /** This function is called periodically during all modes. */
@@ -107,13 +104,13 @@ public class Robot extends LoggedRobot {
   public void robotPeriodic() {
     // Refresh all Phoenix signals
     LoggedTracer.reset();
-    PhoenixUtil.refreshAll();
-    LoggedTracer.record("PhoenixRefresh");
 
     // Optionally switch the thread to high priority to improve loop
     // timing (see the template project documentation for details)
     // TODO: Learn more about this
     Threads.setCurrentThreadPriority(true, 99);
+    PhoenixUtil.refreshAll();
+    LoggedTracer.record("PhoenixRefresh");
 
     // Runs the Scheduler. This is responsible for polling buttons, adding
     // newly-scheduled commands, running already-scheduled commands, removing
@@ -126,7 +123,7 @@ public class Robot extends LoggedRobot {
     // Return to non-RT thread priority
     Threads.setCurrentThreadPriority(false, 10);
 
-    robotContainer.updateAlerts();
+    // robotContainer.updateAlerts();
 
     CANUtil.logStatus();
 
@@ -138,7 +135,7 @@ public class Robot extends LoggedRobot {
   @Override
   public void disabledInit() {
     // TODO: do we want this. it help during testing, but slows down the trasition after auto
-    robotContainer.stopSubsystems();
+    // robotContainer.stopSubsystems();
   }
 
   /** This function is called periodically when disabled. */
@@ -146,9 +143,9 @@ public class Robot extends LoggedRobot {
   public void disabledPeriodic() {
     // Load PathPlanner paths from storage.
     // This will only load before autonomous starts.
-    if (DriverStation.isAutonomous() || Constants.getMode() == Constants.Mode.SIM) {
-      robotContainer.loadAutonomousPath();
-    }
+    // if (DriverStation.isAutonomous() || Constants.getMode() == Constants.Mode.SIM) {
+    //   robotContainer.loadAutonomousPath();
+    // }
   }
 
   /** This autonomous runs the autonomous command selected by your {@link RobotContainer} class. */

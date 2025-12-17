@@ -70,7 +70,7 @@ public class ModuleIOReal implements ModuleIO {
   private final StatusSignal<Current> turnSupplyCurrent;
   private final StatusSignal<Current> turnTorqueCurrent;
   private final StatusSignal<Temperature> turnTempCelsius;
-  private final StatusSignal<Boolean> turnEncoderSyncStickyFault;
+  // private final StatusSignal<Boolean> turnEncoderSyncStickyFault;
 
   public ModuleIOReal(ModuleConfig constants) {
     driveTalon = new TalonFX(constants.driveMotorId(), DriveConstants.canbus);
@@ -145,7 +145,7 @@ public class ModuleIOReal implements ModuleIO {
     turnSupplyCurrent = turnTalon.getSupplyCurrent();
     turnTorqueCurrent = turnTalon.getTorqueCurrent();
     turnTempCelsius = turnTalon.getDeviceTemp();
-    turnEncoderSyncStickyFault = turnTalon.getStickyFault_FusedSensorOutOfSync();
+    // turnEncoderSyncStickyFault = turnTalon.getStickyFault_FusedSensorOutOfSync();
 
     // Create encoder status signals
     turnAbsolutePosition = cancoder.getAbsolutePosition();
@@ -164,7 +164,7 @@ public class ModuleIOReal implements ModuleIO {
         turnAppliedVolts,
         turnSupplyCurrent,
         turnTorqueCurrent,
-        turnEncoderSyncStickyFault,
+        // turnEncoderSyncStickyFault,
         turnMagnetHealth);
     BaseStatusSignal.setUpdateFrequencyForAll(4.0, driveTempCelsius, turnTempCelsius);
     tryUntilOk(5, () -> ParentDevice.optimizeBusUtilizationForAll(driveTalon, turnTalon, cancoder));
@@ -182,7 +182,7 @@ public class ModuleIOReal implements ModuleIO {
         turnSupplyCurrent,
         turnTorqueCurrent,
         turnTempCelsius,
-        turnEncoderSyncStickyFault,
+        // turnEncoderSyncStickyFault,
         turnAbsolutePosition,
         turnMagnetHealth);
   }
@@ -214,7 +214,7 @@ public class ModuleIOReal implements ModuleIO {
     inputs.turnSupplyCurrentAmps = turnSupplyCurrent.getValueAsDouble();
     inputs.turnTorqueCurrentAmps = turnTorqueCurrent.getValueAsDouble();
     inputs.turnTempCelsius = turnTempCelsius.getValueAsDouble();
-    inputs.turnEncoderSyncStickyFault = turnEncoderSyncStickyFault.getValue();
+    // inputs.turnEncoderSyncStickyFault = turnEncoderSyncStickyFault.getValue();
 
     // Update turn encoder inputs
     inputs.turnEncoderConnected =
@@ -254,13 +254,13 @@ public class ModuleIOReal implements ModuleIO {
   @Override
   public void runDriveVelocity(double velocityRadPerSec) {
     // TODO: how to hadle ff, kS or in this method
-    driveTalon.setControl(
-        velocityTorqueCurrentRequest.withVelocity(Units.radiansToRotations(velocityRadPerSec)));
+    // driveTalon.setControl(
+    //     velocityTorqueCurrentRequest.withVelocity(Units.radiansToRotations(velocityRadPerSec)));
   }
 
   @Override
   public void runTurnPosition(Rotation2d rotation) {
-    turnTalon.setControl(positionTorqueCurrentRequest.withPosition(rotation.getRotations()));
+    // turnTalon.setControl(positionTorqueCurrentRequest.withPosition(rotation.getRotations()));
   }
 
   @Override

@@ -107,13 +107,15 @@ public class Robot extends LoggedRobot {
   public void robotPeriodic() {
     // Refresh all Phoenix signals
     LoggedTracer.reset();
-    PhoenixUtil.refreshAll();
-    LoggedTracer.record("PhoenixRefresh");
 
     // Optionally switch the thread to high priority to improve loop
     // timing (see the template project documentation for details)
     // TODO: Learn more about this
     Threads.setCurrentThreadPriority(true, 99);
+
+    LoggedTracer.record("PhoenixRefresh");
+    PhoenixUtil.refreshAll();
+    LoggedTracer.record("PhoenixRefresh Finished");
 
     // Runs the Scheduler. This is responsible for polling buttons, adding
     // newly-scheduled commands, running already-scheduled commands, removing
@@ -121,7 +123,7 @@ public class Robot extends LoggedRobot {
     // This must be called from the robot's periodic block in order for anything in
     // the Command-based framework to work.
     CommandScheduler.getInstance().run();
-    LoggedTracer.record("CommandScheduler");
+    LoggedTracer.record("CommandScheduler Finished");
 
     // Return to non-RT thread priority
     Threads.setCurrentThreadPriority(false, 10);
@@ -131,7 +133,7 @@ public class Robot extends LoggedRobot {
     CANUtil.logStatus();
 
     // Record cycle time
-    LoggedTracer.record("RobotPeriodic");
+    LoggedTracer.record("RobotPeriodic Finished");
   }
 
   /** This function is called once when the robot is disabled. */

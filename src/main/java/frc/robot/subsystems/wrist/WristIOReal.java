@@ -29,6 +29,7 @@ import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Current;
 import edu.wpi.first.units.measure.Temperature;
 import edu.wpi.first.units.measure.Voltage;
+import frc.robot.subsystems.drive.DriveConstants;
 import frc.robot.util.PhoenixUtil;
 import lombok.Getter;
 
@@ -67,8 +68,8 @@ public class WristIOReal implements WristIO {
   private final NeutralOut neutralOut = new NeutralOut();
 
   public WristIOReal() {
-    talon = new TalonFX(32, "rio");
-    followerTalon = new TalonFX(33, "rio");
+    talon = new TalonFX(32, DriveConstants.canbus);
+    followerTalon = new TalonFX(33, DriveConstants.canbus);
     followerTalon.setControl(new Follower(talon.getDeviceID(), true));
 
     // Configure Motor
@@ -121,7 +122,7 @@ public class WristIOReal implements WristIO {
         () -> BaseStatusSignal.setUpdateFrequencyForAll(4, leaderTempCelsius, followerTempCelsius));
     tryUntilOk(5, () -> ParentDevice.optimizeBusUtilizationForAll(talon, followerTalon));
     PhoenixUtil.registerSignals(
-        false,
+        true,
         leaderPosition,
         leaderVelocity,
         leaderAppliedVoltage,

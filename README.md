@@ -4,34 +4,40 @@ Origin of robot is the center of the swerve modules (same as CAD)
 
 CAN ID List:
 Power Distribution Hub - 13
-Pigeon 2.0 - 14
+
+---  Swerve Drive , CANivore DRIVEbus ---
+Pigeon 2.0 - 50
 --
-Front Left Drive - 1
-Front Left Steer - 2
-Front Left Encoder - 9
+Front Left Drive -  1
+Front Left Steer -  2
+Front Left Encoder - 15
 --
 Front Right Drive - 3
 Front Right Steer - 4
-Front Right Encoder - 10
+Front Right Encoder - 16
 --
-Rear Left Drive - 5
-Rear Left Steer - 6
-Rear Left Encoder - 11
+Rear Left Drive -   5
+Rear Left Steer -   6
+Rear Left Encoder -   17
 --
-Rear Right Drive - 7
-Rear Right Steer - 8
-Rear Right Encoder - 12
+Rear Right Drive -  7
+Rear Right Steer -  8
+Rear Right Encoder -  18
 --
-Wrist Leader (Left) - 15
-Wrist Follower (Right)- 16
---
-Intake - 17
-Feeder Lower - 18
-Feeder Upper - 19
---
-Shooter Lower (Left) - 20
-Shooter Upper (Right)- 21
 
+Intake - 20
+---------------------------------------
+
+---  RIO BUS  --
+Wrist Leader (Left) - 32
+Wrist Follower (Right)- 33
+--
+Shooter Lower (Left) - 33
+Shooter Upper (Right)- 31
+--
+Feeder Lower - 35
+Feeder Upper - 36
+--
 
 Sensor IO:
 Object Beam Break 1 - DIO 0

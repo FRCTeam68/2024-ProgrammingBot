@@ -42,7 +42,6 @@ import frc.robot.subsystems.vision.VisionConstants.CameraInfo;
 import frc.robot.subsystems.vision.VisionIOLimelight;
 import frc.robot.subsystems.wrist.Wrist;
 import frc.robot.subsystems.wrist.WristIO;
-import frc.robot.subsystems.wrist.WristIOReal;
 import frc.robot.subsystems.wrist.WristIOSim;
 import frc.robot.util.AllianceFlipUtil;
 import frc.robot.util.AutonUtil;
@@ -102,11 +101,12 @@ public class RobotContainer {
         // new VisionIOLimelight(
         //     CameraType.LL_2, VisionConstants.LL2Name, drive::getRotation));
 
-        wrist = new Wrist(drive::getPose, new WristIOReal());
+        // wrist = new Wrist(drive::getPose, new WristIOReal());
+        wrist = new Wrist(drive::getPose, new WristIO() {});
 
         shooter =
             new Shooter(
-                new ShooterIOReal(33, InvertedValue.Clockwise_Positive),
+                new ShooterIOReal(30, InvertedValue.Clockwise_Positive),
                 new ShooterIOReal(31, InvertedValue.CounterClockwise_Positive));
 
         intake =
@@ -114,7 +114,7 @@ public class RobotContainer {
                 "Intake",
                 new RollerSystemIOTalonFX(
                     20,
-                    "rio",
+                    "DRIVEbus",
                     40,
                     InvertedValue.CounterClockwise_Positive,
                     NeutralModeValue.Coast,

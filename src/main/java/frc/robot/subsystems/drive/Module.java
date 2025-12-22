@@ -30,21 +30,21 @@ public class Module {
     switch (Constants.getMode()) {
       case REAL, REPLAY -> {
         drivekS.initDefault(0);
-        drivekV.initDefault(0);
-        drivekP.initDefault(5);
+        drivekV.initDefault(0.124);
+        drivekP.initDefault(.1);
         drivekD.initDefault(0);
         turnkS.initDefault(0);
-        turnkP.initDefault(0);
-        turnkD.initDefault(0);
+        turnkP.initDefault(100);
+        turnkD.initDefault(0.5);
       }
       case SIM -> {
         drivekS.initDefault(0);
-        drivekV.initDefault(0);
-        drivekP.initDefault(100);
-        drivekD.initDefault(0.5);
+        drivekV.initDefault(0.124);
+        drivekP.initDefault(0.1);
+        drivekD.initDefault(0);
         turnkS.initDefault(0);
-        turnkP.initDefault(5);
-        turnkD.initDefault(0);
+        turnkP.initDefault(100);
+        turnkD.initDefault(0.5);
       }
     }
   }

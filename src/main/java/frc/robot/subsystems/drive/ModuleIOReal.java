@@ -8,8 +8,11 @@ import com.ctre.phoenix6.configs.CANcoderConfiguration;
 import com.ctre.phoenix6.configs.Slot0Configs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.PositionTorqueCurrentFOC;
+import com.ctre.phoenix6.controls.PositionVoltage;
 import com.ctre.phoenix6.controls.TorqueCurrentFOC;
 import com.ctre.phoenix6.controls.VelocityTorqueCurrentFOC;
+import com.ctre.phoenix6.controls.VelocityVoltage;
+import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.hardware.CANcoder;
 import com.ctre.phoenix6.hardware.ParentDevice;
 import com.ctre.phoenix6.hardware.TalonFX;
@@ -36,6 +39,9 @@ public class ModuleIOReal implements ModuleIO {
   private final CANcoder cancoder;
 
   // Configurations
+  private final VoltageOut voltageRequest = new VoltageOut(0);
+  private final PositionVoltage positionVoltageRequest = new PositionVoltage(0.0);
+  private final VelocityVoltage velocityVoltageRequest = new VelocityVoltage(0.0);
   private final TalonFXConfiguration driveConfig = new TalonFXConfiguration();
   private final TalonFXConfiguration turnConfig = new TalonFXConfiguration();
   private final CANcoderConfiguration cancoderConfig = new CANcoderConfiguration();
@@ -101,12 +107,12 @@ public class ModuleIOReal implements ModuleIO {
     turnConfig.TorqueCurrent.PeakReverseTorqueCurrent = -DriveConstants.turnCurrentLimitAmps;
     turnConfig.CurrentLimits.StatorCurrentLimit = DriveConstants.turnCurrentLimitAmps;
     turnConfig.CurrentLimits.StatorCurrentLimitEnable = true;
-    // TODO: do we want these?
-    // turnConfig.MotionMagic.MotionMagicCruiseVelocity = 100.0 / DriveConstants.turnGearRatio;
-    // turnConfig.MotionMagic.MotionMagicAcceleration =
-    //     turnConfig.MotionMagic.MotionMagicCruiseVelocity / 0.100;
-    // turnConfig.MotionMagic.MotionMagicExpo_kV = 0.12 * DriveConstants.turnGearRatio;
-    // turnConfig.MotionMagic.MotionMagicExpo_kA = 0.1;
+    // TODO: do we want these? - yes
+    turnConfig.MotionMagic.MotionMagicCruiseVelocity = 100.0 / DriveConstants.turnReduction;
+    turnConfig.MotionMagic.MotionMagicAcceleration =
+        turnConfig.MotionMagic.MotionMagicCruiseVelocity / 0.100;
+    turnConfig.MotionMagic.MotionMagicExpo_kV = 0.12 * DriveConstants.turnReduction;
+    turnConfig.MotionMagic.MotionMagicExpo_kA = 0.1;
     turnConfig.MotorOutput.Inverted =
         constants.turnInverted()
             ? InvertedValue.Clockwise_Positive
@@ -243,24 +249,24 @@ public class ModuleIOReal implements ModuleIO {
 
   @Override
   public void runDriveOpenLoop(double output) {
-    driveTalon.setControl(torqueCurrentRequest.withOutput(output));
+    driveTalon.setControl(voltageRequest.withOutput(output));
   }
 
   @Override
   public void runTurnOpenLoop(double output) {
-    turnTalon.setControl(torqueCurrentRequest.withOutput(output));
+    turnTalon.setControl(voltageRequest.withOutput(output));
   }
 
   @Override
   public void runDriveVelocity(double velocityRadPerSec) {
     // TODO: how to hadle ff, kS or in this method
     driveTalon.setControl(
-        velocityTorqueCurrentRequest.withVelocity(Units.radiansToRotations(velocityRadPerSec)));
+        velocityVoltageRequest.withVelocity(Units.radiansToRotations(velocityRadPerSec)));
   }
 
   @Override
   public void runTurnPosition(Rotation2d rotation) {
-    turnTalon.setControl(positionTorqueCurrentRequest.withPosition(rotation.getRotations()));
+    turnTalon.setControl(positionVoltageRequest.withPosition(rotation.getRotations()));
   }
 
   @Override

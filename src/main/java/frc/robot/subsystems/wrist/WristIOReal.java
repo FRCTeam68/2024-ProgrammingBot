@@ -67,8 +67,8 @@ public class WristIOReal implements WristIO {
   private final NeutralOut neutralOut = new NeutralOut();
 
   public WristIOReal() {
-    talon = new TalonFX(32, "*");
-    followerTalon = new TalonFX(33, "*");
+    talon = new TalonFX(32, "rio");
+    followerTalon = new TalonFX(33, "rio");
     followerTalon.setControl(new Follower(talon.getDeviceID(), true));
 
     // Configure Motor

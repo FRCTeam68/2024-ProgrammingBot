@@ -8,8 +8,10 @@ import com.ctre.phoenix6.configs.CANcoderConfiguration;
 import com.ctre.phoenix6.configs.Slot0Configs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.PositionTorqueCurrentFOC;
+import com.ctre.phoenix6.controls.PositionVoltage;
 import com.ctre.phoenix6.controls.TorqueCurrentFOC;
 import com.ctre.phoenix6.controls.VelocityTorqueCurrentFOC;
+import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.hardware.CANcoder;
 import com.ctre.phoenix6.hardware.ParentDevice;
 import com.ctre.phoenix6.hardware.TalonFX;
@@ -47,6 +49,10 @@ public class ModuleIOReal implements ModuleIO {
       new PositionTorqueCurrentFOC(0.0);
   private final VelocityTorqueCurrentFOC velocityTorqueCurrentRequest =
       new VelocityTorqueCurrentFOC(0.0);
+  private final PositionVoltage positionVoltageRequest =
+      new PositionVoltage(0.0).withEnableFOC(true);
+  private final VelocityVoltage velocityVoltageRequest =
+      new VelocityVoltage(0.0).withEnableFOC(true);
 
   // Timestamp inputs from Phoenix thread
   private final Queue<Double> timestampQueue;
@@ -255,13 +261,13 @@ public class ModuleIOReal implements ModuleIO {
   @Override
   public void runDriveVelocity(double velocityRadPerSec) {
     // TODO: how to hadle ff, kS or in this method
-    // driveTalon.setControl(
-    //     velocityTorqueCurrentRequest.withVelocity(Units.radiansToRotations(velocityRadPerSec)));
+    driveTalon.setControl(
+        velocityVoltageRequest.withVelocity(Units.radiansToRotations(velocityRadPerSec)));
   }
 
   @Override
   public void runTurnPosition(Rotation2d rotation) {
-    // turnTalon.setControl(positionTorqueCurrentRequest.withPosition(rotation.getRotations()));
+    turnTalon.setControl(positionVoltageRequest.withPosition(rotation.getRotations()));
   }
 
   @Override

@@ -53,7 +53,7 @@ public class ShooterIOReal implements ShooterIO {
 
     // Configure Motor
     config.MotorOutput.Inverted = invertedValue;
-    config.MotorOutput.NeutralMode = NeutralModeValue.Brake;
+    config.MotorOutput.NeutralMode = NeutralModeValue.Coast;
     // Current limits
     config.CurrentLimits.StatorCurrentLimitEnable = true;
     config.CurrentLimits.StatorCurrentLimit = 120;

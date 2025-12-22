@@ -84,22 +84,36 @@ public class RobotContainer {
   public RobotContainer() {
     switch (Constants.getMode()) {
       case REAL -> {
-        if (1 == 2) {
-          drive =
-              new Drive(
-                  new GyroIOPigeon2(),
-                  new ModuleIOReal(DriveConstants.moduleConfigs[0]),
-                  new ModuleIOReal(DriveConstants.moduleConfigs[1]),
-                  new ModuleIOReal(DriveConstants.moduleConfigs[2]),
-                  new ModuleIOReal(DriveConstants.moduleConfigs[3]));
-        } else {
-          drive =
-              new Drive(
-                  new GyroIO() {},
-                  new ModuleIOSim(),
-                  new ModuleIOSim(),
-                  new ModuleIOSim(),
-                  new ModuleIOSim());
+        switch (1) {
+          case 1:
+            drive =
+                new Drive(
+                    new GyroIOPigeon2(),
+                    new ModuleIOReal(DriveConstants.moduleConfigs[0]),
+                    new ModuleIOReal(DriveConstants.moduleConfigs[1]),
+                    new ModuleIOReal(DriveConstants.moduleConfigs[2]),
+                    new ModuleIOReal(DriveConstants.moduleConfigs[3]));
+            break;
+
+          case 2:
+            drive =
+                new Drive(
+                    new GyroIOPigeon2(),
+                    new ModuleIOSim(),
+                    new ModuleIOSim(),
+                    new ModuleIOReal(DriveConstants.moduleConfigs[2]),
+                    new ModuleIOReal(DriveConstants.moduleConfigs[3]));
+            break;
+
+          case 3:
+            drive =
+                new Drive(
+                    new GyroIO() {},
+                    new ModuleIOSim(),
+                    new ModuleIOSim(),
+                    new ModuleIOSim(),
+                    new ModuleIOSim());
+            break;
         }
 
         // vision = new Vision(drive::addVisionMeasurement, drive::getPose,
@@ -111,7 +125,7 @@ public class RobotContainer {
 
         shooter =
             new Shooter(
-                new ShooterIOReal(33, InvertedValue.Clockwise_Positive),
+                new ShooterIOReal(30, InvertedValue.CounterClockwise_Positive),
                 new ShooterIOReal(31, InvertedValue.CounterClockwise_Positive));
 
         intake =

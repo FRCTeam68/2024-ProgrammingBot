@@ -8,14 +8,14 @@ import frc.robot.subsystems.shooter.Shooter;
 public class TestCommands {
   public static Command runRoller(RollerSystem system) {
     return Commands.sequence(
-        Commands.runOnce(() -> system.runVolts(12)),
+        Commands.runOnce(() -> system.runVolts(2)),
         Commands.waitSeconds(2),
         Commands.runOnce(() -> system.runVolts(0)));
   }
 
   public static Command runShooter(Shooter system) {
     return Commands.sequence(
-        Commands.runOnce(() -> system.runVolts(12, 12)),
+        Commands.runOnce(() -> system.runVolts(2, 2)),
         Commands.waitSeconds(2),
         Commands.runOnce(() -> system.runVolts(0, 0)));
   }

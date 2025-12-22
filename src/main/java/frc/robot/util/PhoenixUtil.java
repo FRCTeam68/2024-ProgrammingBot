@@ -3,6 +3,7 @@ package frc.robot.util;
 import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.StatusCode;
 import java.util.function.Supplier;
+import org.littletonrobotics.junction.Logger;
 
 public class PhoenixUtil {
   /** Attempts to run the command until no error is produced. */
@@ -36,17 +37,17 @@ public class PhoenixUtil {
 
   /** Refresh all registered signals. */
   public static void refreshAll() {
-    // if (canivoreSignals.length > 0) {
-    //   var canivorestat = BaseStatusSignal.refreshAll(canivoreSignals);
-    //   Logger.recordOutput("test/canivore", canivorestat.isOK());
-    // }
-    // if (rioSignals.length > 0) {
-    //   var riostat = BaseStatusSignal.refreshAll(rioSignals);
-    //   Logger.recordOutput("test/rio", riostat.isOK());
-    //   // for (int i = 0; i < rioSignals.length; i++) {
-    //   //   Logger.recordOutput("test/rio"+rioSignals[i].getName(), rioSignals[i].);
-    //   // }
-    // }
+    if (canivoreSignals.length > 0) {
+      var canivorestat = BaseStatusSignal.refreshAll(canivoreSignals);
+      Logger.recordOutput("test/canivore", canivorestat.isOK());
+    }
+    if (rioSignals.length > 0) {
+      var riostat = BaseStatusSignal.refreshAll(rioSignals);
+      Logger.recordOutput("test/rio", riostat.isOK());
+      // for (int i = 0; i < rioSignals.length; i++) {
+      //   Logger.recordOutput("test/rio"+rioSignals[i].getName(), rioSignals[i].);
+      // }
+    }
   }
 
   public static enum ControlMode {

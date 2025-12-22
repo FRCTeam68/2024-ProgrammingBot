@@ -16,7 +16,7 @@ import lombok.Builder;
 
 public final class DriveConstants {
   // Hardware Configuration
-  public static final String canbus = "*";
+  public static final String canbus = "rio";
   public static final double trackWidthX = Units.inchesToMeters(22.5); // meters
   public static final double trackWidthY = Units.inchesToMeters(22.5); // meters
   public static final double driveReduction = 5.88;
@@ -82,6 +82,45 @@ public final class DriveConstants {
     "module 3 (Back Right)"
   };
 
+  // public static final ModuleConfig[] moduleConfigs = {
+  //   // Module 0 (Front Left)
+  //   ModuleConfig.builder()
+  //       .driveMotorId(1)
+  //       .turnMotorId(2)
+  //       .encoderId(15)
+  //       .encoderOffset(Rotation2d.fromRotations(-0.15673828125))
+  //       .turnInverted(true)
+  //       .encoderInverted(false)
+  //       .build(),
+  //   // Module 1 (Front Right)
+  //   ModuleConfig.builder()
+  //       .driveMotorId(1)
+  //       .turnMotorId(2)
+  //       .encoderId(15)
+  //       .encoderOffset(Rotation2d.fromRotations(-0.135498046875))
+  //       .turnInverted(true)
+  //       .encoderInverted(false)
+  //       .build(),
+  //   // Module 2 (Back Left)
+  //   ModuleConfig.builder()
+  //       .driveMotorId(1)
+  //       .turnMotorId(2)
+  //       .encoderId(15)
+  //       .encoderOffset(Rotation2d.fromRotations(-0.433837890625))
+  //       .turnInverted(true)
+  //       .encoderInverted(false)
+  //       .build(),
+  //   // Module 3 (Back Right)
+  //   ModuleConfig.builder()
+  //       .driveMotorId(1)
+  //       .turnMotorId(2)
+  //       .encoderId(15)
+  //       .encoderOffset(Rotation2d.fromRotations(0.04833984375))
+  //       .turnInverted(true)
+  //       .encoderInverted(false)
+  //       .build(),
+  // };
+
   public static final ModuleConfig[] moduleConfigs = {
     // Module 0 (Front Left)
     ModuleConfig.builder()
@@ -89,7 +128,7 @@ public final class DriveConstants {
         .turnMotorId(2)
         .encoderId(15)
         .encoderOffset(Rotation2d.fromRotations(-0.15673828125))
-        .turnInverted(true)
+        .turnInverted(false)
         .encoderInverted(false)
         .build(),
     // Module 1 (Front Right)
@@ -98,7 +137,7 @@ public final class DriveConstants {
         .turnMotorId(4)
         .encoderId(16)
         .encoderOffset(Rotation2d.fromRotations(-0.135498046875))
-        .turnInverted(true)
+        .turnInverted(false)
         .encoderInverted(false)
         .build(),
     // Module 2 (Back Left)
@@ -107,7 +146,7 @@ public final class DriveConstants {
         .turnMotorId(6)
         .encoderId(17)
         .encoderOffset(Rotation2d.fromRotations(-0.433837890625))
-        .turnInverted(true)
+        .turnInverted(false)
         .encoderInverted(false)
         .build(),
     // Module 3 (Back Right)
@@ -116,7 +155,7 @@ public final class DriveConstants {
         .turnMotorId(8)
         .encoderId(18)
         .encoderOffset(Rotation2d.fromRotations(0.04833984375))
-        .turnInverted(true)
+        .turnInverted(false)
         .encoderInverted(false)
         .build(),
   };

@@ -67,8 +67,8 @@ public class WristIOReal implements WristIO {
   private final NeutralOut neutralOut = new NeutralOut();
 
   public WristIOReal() {
-    talon = new TalonFX(32, "rio");
-    followerTalon = new TalonFX(33, "rio");
+    talon = new TalonFX(32, "*");
+    followerTalon = new TalonFX(33, "*");
     followerTalon.setControl(new Follower(talon.getDeviceID(), true));
 
     // Configure Motor
@@ -121,7 +121,7 @@ public class WristIOReal implements WristIO {
         () -> BaseStatusSignal.setUpdateFrequencyForAll(4, leaderTempCelsius, followerTempCelsius));
     tryUntilOk(5, () -> ParentDevice.optimizeBusUtilizationForAll(talon, followerTalon));
     PhoenixUtil.registerSignals(
-        false,
+        true,
         leaderPosition,
         leaderVelocity,
         leaderAppliedVoltage,

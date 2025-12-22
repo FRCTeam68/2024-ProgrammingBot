@@ -126,7 +126,7 @@ public class Robot extends LoggedRobot {
     // Return to non-RT thread priority
     // Threads.setCurrentThreadPriority(false, 10);
 
-    robotContainer.updateAlerts();
+    // robotContainer.updateAlerts();
 
     CANUtil.logStatus();
 
@@ -143,9 +143,9 @@ public class Robot extends LoggedRobot {
   public void disabledPeriodic() {
     // Load PathPlanner paths from storage.
     // This will only load before autonomous starts.
-    if (DriverStation.isAutonomous() || Constants.getMode() == Constants.Mode.SIM) {
-      robotContainer.loadAutonomousPath();
-    }
+    // if (DriverStation.isAutonomous() || Constants.getMode() == Constants.Mode.SIM) {
+    //   robotContainer.loadAutonomousPath();
+    // }
   }
 
   /** This autonomous runs the autonomous command selected by your {@link RobotContainer} class. */

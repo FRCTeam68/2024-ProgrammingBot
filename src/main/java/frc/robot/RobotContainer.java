@@ -199,7 +199,7 @@ public class RobotContainer {
       }
     }
 
-    intake.initPID(new SlotConfigs().withKP(5).withKD(0).withKS(0));
+    // intake.initPID(new SlotConfigs().withKP(5).withKD(0).withKS(0));
 
     feederLower.initPID(new SlotConfigs().withKP(10).withKD(0).withKS(0));
 
@@ -266,10 +266,27 @@ public class RobotContainer {
     //     .onTrue(Commands.runOnce(() -> shooter.runVelocity(50, 0, 100, 0)));
     // driverController.rightBumper().onTrue(Commands.runOnce(() -> shooter.runVolts(6, 2)));
     // driverController
-    //     .rightBumper()
+    //     .leftTrigger()
     //     .onTrue(
-    //         IntakeCommands.Intake(
-    //             intake, feederLower, feederUpper, wrist, () -> noteSensor.isHaveNote()));
+    //         // Commands.parallel(
+    //         DriveCommands.joystickDriveAtTarget(
+    //             drive,
+    //             () -> -driverController.getLeftY(),
+    //             () -> -driverController.getLeftX(),
+    //             () -> new Translation2d(1, 1)));
+    // // noteSensor.automaticSimulatedNote(3))
+    // // .onlyIf(
+    // //     () ->
+    // //         Constants.getMode() == Mode.SIM && noteSensor.getAutomaticNoteSim().get()));
+    // driverController
+    //     .rightTrigger()
+    //     .onTrue(Commands.runOnce(() -> shooter.runVelocity(50, 0, 100, 0)));
+    // driverController.rightBumper().onTrue(Commands.runOnce(() -> shooter.runVolts(6, 2)));
+    // // driverController
+    // //     .rightBumper()
+    // //     .onTrue(
+    // //         IntakeCommands.Intake(
+    // //             intake, feederLower, feederUpper, wrist, () -> noteSensor.isHaveNote()));
 
     // driverController
     //     .povLeft()
@@ -308,10 +325,10 @@ public class RobotContainer {
   /** Stops all subsystems and cancels any scheduled commands. */
   public void stopSubsystems() {
     CommandScheduler.getInstance().cancelAll();
-    drive.stop();
+    // drive.stop();
     shooter.stop();
-    wrist.stop();
-    intake.stop();
+    // wrist.stop();
+    // intake.stop();
     feederLower.stop();
     feederUpper.stop();
   }

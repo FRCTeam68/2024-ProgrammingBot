@@ -13,8 +13,8 @@ import frc.robot.Constants;
 
 /** Physics sim implementation of module IO. Simulation is always based on voltage control. */
 public class ModuleIOSim implements ModuleIO {
-  private static final DCMotor driveMotorModel = DCMotor.getKrakenX60Foc(1);
-  private static final DCMotor turnMotorModel = DCMotor.getKrakenX60Foc(1);
+  private static final DCMotor driveMotorModel = DCMotor.getFalcon500Foc(1);
+  private static final DCMotor turnMotorModel = DCMotor.getFalcon500Foc(1);
 
   private final DCMotorSim driveSim =
       new DCMotorSim(
@@ -29,7 +29,6 @@ public class ModuleIOSim implements ModuleIO {
   private boolean turnClosedLoop = false;
   private PIDController driveController = new PIDController(0, 0, 0);
   private PIDController turnController = new PIDController(0, 0, 0);
-  private double driveFFVolts = 0;
   private double driveAppliedVolts = 0.0;
   private double turnAppliedVolts = 0.0;
 
@@ -42,8 +41,7 @@ public class ModuleIOSim implements ModuleIO {
   public void updateInputs(ModuleIOInputs inputs) {
     // Run closed-loop control
     if (driveClosedLoop) {
-      driveAppliedVolts =
-          driveFFVolts + driveController.calculate(driveSim.getAngularVelocityRadPerSec());
+      driveAppliedVolts = driveController.calculate(driveSim.getAngularVelocityRadPerSec());
     } else {
       driveController.reset();
     }

@@ -1,9 +1,8 @@
 package frc.robot;
 
 import com.ctre.phoenix6.configs.SlotConfigs;
-import edu.wpi.first.math.geometry.Pose2d;
-import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.geometry.Translation2d;
+import com.ctre.phoenix6.signals.InvertedValue;
+import com.ctre.phoenix6.signals.NeutralModeValue;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
@@ -14,29 +13,31 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandPS4Controller;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import frc.robot.commands.DriveCommands;
+import frc.robot.commands.TestCommands;
 import frc.robot.commands.auton.AutonCommands;
 import frc.robot.commands.auton.AutonSequence;
 import frc.robot.commands.auton.AutonSequenceCenter;
 import frc.robot.commands.auton.AutonSequenceSide;
-import frc.robot.subsystems.NoteVisualizer;
 import frc.robot.subsystems.drive.Drive;
+import frc.robot.subsystems.drive.DriveConstants;
 import frc.robot.subsystems.drive.GyroIO;
+import frc.robot.subsystems.drive.GyroIOPigeon2;
 import frc.robot.subsystems.drive.ModuleIO;
+import frc.robot.subsystems.drive.ModuleIOReal;
 import frc.robot.subsystems.drive.ModuleIOSim;
 import frc.robot.subsystems.rollers.RollerSystem;
 import frc.robot.subsystems.rollers.RollerSystemIO;
 import frc.robot.subsystems.rollers.RollerSystemIOSim;
+import frc.robot.subsystems.rollers.RollerSystemIOTalonFX;
 import frc.robot.subsystems.sensors.NoteSensor;
 import frc.robot.subsystems.shooter.Shooter;
 import frc.robot.subsystems.shooter.ShooterIO;
+import frc.robot.subsystems.shooter.ShooterIOReal;
 import frc.robot.subsystems.shooter.ShooterIOSim;
-import frc.robot.subsystems.vision.Vision;
-import frc.robot.subsystems.vision.VisionConstants.CameraInfo;
-import frc.robot.subsystems.vision.VisionIOLimelight;
 import frc.robot.subsystems.wrist.Wrist;
 import frc.robot.subsystems.wrist.WristIO;
+import frc.robot.subsystems.wrist.WristIOReal;
 import frc.robot.subsystems.wrist.WristIOSim;
-import frc.robot.util.AllianceFlipUtil;
 import frc.robot.util.AutonUtil;
 import frc.robot.util.FollowPathUtil;
 import org.littletonrobotics.junction.networktables.LoggedDashboardChooser;
@@ -50,14 +51,14 @@ import org.littletonrobotics.junction.networktables.LoggedDashboardChooser;
 public class RobotContainer {
   // Subsystems
   private Drive drive;
-  private Vision vision;
+  // private Vision vision;
   private Wrist wrist;
   private Shooter shooter;
   private RollerSystem intake;
   private RollerSystem feederLower;
   private RollerSystem feederUpper;
   private NoteSensor noteSensor;
-  private NoteVisualizer noteVisualizer;
+  //   private NoteVisualizer noteVisualizer;
 
   // Controllers
   private final CommandXboxController driverController = new CommandXboxController(0);
@@ -79,58 +80,68 @@ public class RobotContainer {
   private final LoggedDashboardChooser<AutonSequence> autonChooser;
 
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
+  @SuppressWarnings("unused")
   public RobotContainer() {
     switch (Constants.getMode()) {
-        //   case REAL -> {
-        //     drive =
-        //         new Drive(
-        //             new GyroIOPigeon2(),
-        //             new ModuleIOReal(DriveConstants.moduleConfigs[0]),
-        //             new ModuleIOReal(DriveConstants.moduleConfigs[1]),
-        //             new ModuleIOReal(DriveConstants.moduleConfigs[2]),
-        //             new ModuleIOReal(DriveConstants.moduleConfigs[3]));
+      case REAL -> {
+        if (1 == 2) {
+          drive =
+              new Drive(
+                  new GyroIOPigeon2(),
+                  new ModuleIOReal(DriveConstants.moduleConfigs[0]),
+                  new ModuleIOReal(DriveConstants.moduleConfigs[1]),
+                  new ModuleIOReal(DriveConstants.moduleConfigs[2]),
+                  new ModuleIOReal(DriveConstants.moduleConfigs[3]));
+        } else {
+          drive =
+              new Drive(
+                  new GyroIO() {},
+                  new ModuleIOSim(),
+                  new ModuleIOSim(),
+                  new ModuleIOSim(),
+                  new ModuleIOSim());
+        }
 
-        //     vision = new Vision(drive::addVisionMeasurement, drive::getPose,
+        // vision = new Vision(drive::addVisionMeasurement, drive::getPose,
         // drive::getFieldVelocity);
-        //     // new VisionIOLimelight(
-        //     //     CameraType.LL_2, VisionConstants.LL2Name, drive::getRotation));
+        // new VisionIOLimelight(
+        //     CameraType.LL_2, VisionConstants.LL2Name, drive::getRotation));
 
-        //     wrist = new Wrist(drive::getPose, new WristIOReal());
+        wrist = new Wrist(drive::getPose, new WristIOReal());
 
-        //     shooter =
-        //         new Shooter(
-        //             new ShooterIOReal(33, InvertedValue.Clockwise_Positive),
-        //             new ShooterIOReal(31, InvertedValue.CounterClockwise_Positive));
+        shooter =
+            new Shooter(
+                new ShooterIOReal(33, InvertedValue.Clockwise_Positive),
+                new ShooterIOReal(31, InvertedValue.CounterClockwise_Positive));
 
-        //     intake =
-        //         new RollerSystem(
-        //             "Intake",
-        //             new RollerSystemIOTalonFX(
-        //                 20,
-        //                 "rio",
-        //                 40,
-        //                 InvertedValue.CounterClockwise_Positive,
-        //                 NeutralModeValue.Coast,
-        //                 1));
+        intake =
+            new RollerSystem(
+                "Intake",
+                new RollerSystemIOTalonFX(
+                    20,
+                    "rio",
+                    40,
+                    InvertedValue.CounterClockwise_Positive,
+                    NeutralModeValue.Coast,
+                    1));
 
-        //     feederLower =
-        //         new RollerSystem(
-        //             "FeederLower",
-        //             new RollerSystemIOTalonFX(
-        //                 35,
-        //                 "rio",
-        //                 40,
-        //                 InvertedValue.CounterClockwise_Positive,
-        //                 NeutralModeValue.Coast,
-        //                 1));
-        //     feederUpper =
-        //         new RollerSystem(
-        //             "FeederUpper",
-        //             new RollerSystemIOTalonFX(
-        //                 36, "rio", 40, InvertedValue.Clockwise_Positive, NeutralModeValue.Brake,
-        // 1));
-        //   }
-      case SIM, REAL -> {
+        feederLower =
+            new RollerSystem(
+                "FeederLower",
+                new RollerSystemIOTalonFX(
+                    35,
+                    "rio",
+                    40,
+                    InvertedValue.CounterClockwise_Positive,
+                    NeutralModeValue.Coast,
+                    1));
+        feederUpper =
+            new RollerSystem(
+                "FeederUpper",
+                new RollerSystemIOTalonFX(
+                    36, "rio", 40, InvertedValue.Clockwise_Positive, NeutralModeValue.Brake, 1));
+      }
+      case SIM -> {
         drive =
             new Drive(
                 new GyroIO() {},
@@ -139,12 +150,12 @@ public class RobotContainer {
                 new ModuleIOSim(),
                 new ModuleIOSim());
 
-        vision =
-            new Vision(
-                drive::addVisionMeasurement,
-                drive::getPose,
-                drive::getFieldVelocity,
-                new VisionIOLimelight(CameraInfo.LL_4));
+        // vision =
+        //     new Vision(
+        //         drive::addVisionMeasurement,
+        //         drive::getPose,
+        //         drive::getFieldVelocity,
+        //         new VisionIOLimelight(CameraInfo.LL_4));
 
         wrist = new Wrist(drive::getPose, new WristIOSim());
 
@@ -169,12 +180,12 @@ public class RobotContainer {
                 new ModuleIO() {},
                 new ModuleIO() {});
 
-        vision =
-            new Vision(
-                drive::addVisionMeasurement,
-                drive::getPose,
-                drive::getFieldVelocity,
-                new VisionIOLimelight(CameraInfo.LL_4));
+        // vision =
+        //     new Vision(
+        //         drive::addVisionMeasurement,
+        //         drive::getPose,
+        //         drive::getFieldVelocity,
+        //         new VisionIOLimelight(CameraInfo.LL_4));
 
         wrist = new Wrist(drive::getPose, new WristIO() {});
 
@@ -196,7 +207,8 @@ public class RobotContainer {
 
     noteSensor = new NoteSensor();
 
-    noteVisualizer = new NoteVisualizer(drive::getPose, wrist::getPosition, noteSensor::isDetected);
+    // noteVisualizer = new NoteVisualizer(drive::getPose, wrist::getPosition,
+    // noteSensor::isDetected);
 
     // Set up dashboard auto chooser
     autonChooser = new LoggedDashboardChooser<>("Auto Chooser");
@@ -219,57 +231,62 @@ public class RobotContainer {
             () -> -driverController.getLeftX(),
             () -> -driverController.getRightX()));
 
-    driverController
-        .start()
-        .onTrue(
-            Commands.runOnce(
-                () ->
-                    drive.setPose(
-                        new Pose2d(
-                            drive.getPose().getTranslation(),
-                            AllianceFlipUtil.shouldFlip()
-                                ? new Rotation2d()
-                                : new Rotation2d(Math.PI)))));
+    driverController.povDown().onTrue(TestCommands.runRoller(intake));
+    driverController.povLeft().onTrue(TestCommands.runRoller(feederLower));
+    driverController.povRight().onTrue(TestCommands.runRoller(feederUpper));
+    driverController.povUp().onTrue(TestCommands.runShooter(shooter));
 
-    driverController
-        .leftTrigger()
-        .onTrue(
-            // Commands.parallel(
-            DriveCommands.joystickDriveAtTarget(
-                drive,
-                () -> -driverController.getLeftY(),
-                () -> -driverController.getLeftX(),
-                () -> new Translation2d(1, 1)));
+    // driverController
+    //     .start()
+    //     .onTrue(
+    //         Commands.runOnce(
+    //             () ->
+    //                 drive.setPose(
+    //                     new Pose2d(
+    //                         drive.getPose().getTranslation(),
+    //                         AllianceFlipUtil.shouldFlip()
+    //                             ? new Rotation2d()
+    //                             : new Rotation2d(Math.PI)))));
+
+    // driverController
+    //     .leftTrigger()
+    //     .onTrue(
+    //         // Commands.parallel(
+    //         DriveCommands.joystickDriveAtTarget(
+    //             drive,
+    //             () -> -driverController.getLeftY(),
+    //             () -> -driverController.getLeftX(),
+    //             () -> new Translation2d(1, 1)));
     // noteSensor.automaticSimulatedNote(3))
     // .onlyIf(
     //     () ->
     //         Constants.getMode() == Mode.SIM && noteSensor.getAutomaticNoteSim().get()));
-    driverController
-        .rightTrigger()
-        .onTrue(Commands.runOnce(() -> shooter.runVelocity(50, 0, 100, 0)));
-    driverController.rightBumper().onTrue(Commands.runOnce(() -> shooter.runVolts(6, 2)));
+    // driverController
+    //     .rightTrigger()
+    //     .onTrue(Commands.runOnce(() -> shooter.runVelocity(50, 0, 100, 0)));
+    // driverController.rightBumper().onTrue(Commands.runOnce(() -> shooter.runVolts(6, 2)));
     // driverController
     //     .rightBumper()
     //     .onTrue(
     //         IntakeCommands.Intake(
     //             intake, feederLower, feederUpper, wrist, () -> noteSensor.isHaveNote()));
 
-    driverController
-        .povLeft()
-        .whileTrue(
-            DriveCommands.AutopilotDriveToPose(
-                drive, () -> new Pose2d(8, 1, new Rotation2d()), null));
+    // driverController
+    //     .povLeft()
+    //     .whileTrue(
+    //         DriveCommands.AutopilotDriveToPose(
+    //             drive, () -> new Pose2d(8, 1, new Rotation2d()), null));
 
-    driverController
-        .back()
-        .onTrue(
-            Commands.runOnce(
-                    () ->
-                        drive.setPose(
-                            new Pose2d(
-                                drive.getPose().getTranslation(),
-                                AllianceFlipUtil.apply(new Rotation2d(0)))))
-                .ignoringDisable(true));
+    // driverController
+    //     .back()
+    //     .onTrue(
+    //         Commands.runOnce(
+    //                 () ->
+    //                     drive.setPose(
+    //                         new Pose2d(
+    //                             drive.getPose().getTranslation(),
+    //                             AllianceFlipUtil.apply(new Rotation2d(0)))))
+    //             .ignoringDisable(true));
     driverController.start().onTrue(Commands.runOnce(() -> stopSubsystems()));
   }
 

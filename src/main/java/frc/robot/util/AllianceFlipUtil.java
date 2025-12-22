@@ -4,6 +4,7 @@ import edu.wpi.first.math.geometry.*;
 import edu.wpi.first.wpilibj.DriverStation;
 import frc.robot.FieldConstants;
 
+/** Flip field pose if on red alliance */
 public class AllianceFlipUtil {
   public static double applyX(double x) {
     return shouldFlip() ? FieldConstants.fieldLength - x : x;
@@ -22,7 +23,7 @@ public class AllianceFlipUtil {
   public static Rotation2d apply(Rotation2d rotation) {
     return shouldFlip()
         ? switch (FieldConstants.symmetryType) {
-          case Mirrored -> Rotation2d.kPi.minus(rotation);
+          case Mirrored -> Rotation2d.kPi.rotateBy(rotation.unaryMinus());
           case Rotated -> rotation.rotateBy(Rotation2d.kPi);
         }
         : rotation;

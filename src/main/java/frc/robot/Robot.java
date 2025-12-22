@@ -4,7 +4,6 @@ import com.ctre.phoenix6.SignalLogger;
 import com.pathplanner.lib.commands.FollowPathCommand;
 import com.pathplanner.lib.commands.PathfindingCommand;
 import edu.wpi.first.wpilibj.DriverStation;
-import edu.wpi.first.wpilibj.Threads;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import frc.robot.util.CANUtil;
@@ -75,11 +74,8 @@ public class Robot extends LoggedRobot {
     // Rely on our custom alerts for disconnected controllers
     DriverStation.silenceJoystickConnectionWarning(true);
 
-    // Start AdvantageKit logger
-    // TODO: 2025 code has a comment sying this should be after RobotContainer. The template has it
-    // before
-    AutoLogOutputManager.addObject(new RobotState());
-    Logger.start();
+    // Instantiate our RobotContainer. This will perform all our button bindings.
+    robotContainer = new RobotContainer();
 
     // CTRE Hoot logging
     // do not call the setPath and hoot log will be logged to rio at "/home/lvuser/logs"
@@ -87,8 +83,9 @@ public class Robot extends LoggedRobot {
     // SignalLogger.setPath("//media/sda1/logs");
     // SignalLogger.start();
 
-    // Instantiate our RobotContainer. This will perform all our button bindings.
-    robotContainer = new RobotContainer();
+    // Start AdvantageKit logger
+    AutoLogOutputManager.addObject(new RobotState());
+    Logger.start();
 
     // Warmup pathplanner libraries
     // This must be done after instantiate RobotContainer
@@ -96,24 +93,27 @@ public class Robot extends LoggedRobot {
     FollowPathCommand.warmupCommand().schedule();
     PathfindingCommand.warmupCommand().schedule();
 
-    // Threads.setCurrentThreadPriority(true, 1);
+    // CommandScheduler.getInstance()
+    //     .onCommandInitialize((Command command) -> Logger.recordOutput("test",
+    // command.getName()));
 
-    CommandScheduler.getInstance()
-        .onCommandInitialize((Command command) -> Logger.recordOutput("test", command.getName()));
+    // Set start time for logged tracer
+    LoggedTracer.reset();
+
+    // Threads.setCurrentThreadPriority(true, 1);
   }
 
   /** This function is called periodically during all modes. */
   @Override
   public void robotPeriodic() {
     // Refresh all Phoenix signals
-    LoggedTracer.reset();
     PhoenixUtil.refreshAll();
     LoggedTracer.record("PhoenixRefresh");
 
     // Optionally switch the thread to high priority to improve loop
     // timing (see the template project documentation for details)
     // TODO: Learn more about this
-    Threads.setCurrentThreadPriority(true, 99);
+    // Threads.setCurrentThreadPriority(true, 99);
 
     // Runs the Scheduler. This is responsible for polling buttons, adding
     // newly-scheduled commands, running already-scheduled commands, removing
@@ -124,7 +124,7 @@ public class Robot extends LoggedRobot {
     LoggedTracer.record("CommandScheduler");
 
     // Return to non-RT thread priority
-    Threads.setCurrentThreadPriority(false, 10);
+    // Threads.setCurrentThreadPriority(false, 10);
 
     robotContainer.updateAlerts();
 
@@ -136,10 +136,7 @@ public class Robot extends LoggedRobot {
 
   /** This function is called once when the robot is disabled. */
   @Override
-  public void disabledInit() {
-    // TODO: do we want this. it help during testing, but slows down the trasition after auto
-    robotContainer.stopSubsystems();
-  }
+  public void disabledInit() {}
 
   /** This function is called periodically when disabled. */
   @Override
@@ -183,10 +180,7 @@ public class Robot extends LoggedRobot {
 
   /** This function is called once when test mode is enabled. */
   @Override
-  public void testInit() {
-    // Cancels all running commands at the start of test mode.
-    CommandScheduler.getInstance().cancelAll();
-  }
+  public void testInit() {}
 
   /** This function is called periodically during test mode. */
   @Override

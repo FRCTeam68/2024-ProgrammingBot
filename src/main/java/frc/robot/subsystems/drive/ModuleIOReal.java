@@ -72,6 +72,7 @@ public class ModuleIOReal implements ModuleIO {
   private final StatusSignal<Temperature> turnTempCelsius;
   private final StatusSignal<Boolean> turnEncoderSyncStickyFault;
 
+  @SuppressWarnings("unused")
   public ModuleIOReal(ModuleConfig constants) {
     driveTalon = new TalonFX(constants.driveMotorId(), DriveConstants.canbus);
     turnTalon = new TalonFX(constants.turnMotorId(), DriveConstants.canbus);

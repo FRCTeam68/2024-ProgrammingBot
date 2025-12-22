@@ -34,7 +34,6 @@ import frc.robot.Constants;
 import frc.robot.Constants.Mode;
 import frc.robot.util.AllianceFlipUtil;
 import frc.robot.util.LocalADStarAK;
-import frc.robot.util.LoggedTracer;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import org.littletonrobotics.junction.AutoLogOutput;
@@ -119,28 +118,13 @@ public class Drive extends SubsystemBase {
 
   @Override
   public void periodic() {
-    LoggedTracer.reset();
-    if (odometryLock.tryLock()) {
-      try {
-        Logger.recordOutput("LoggedTracer/OdometryLock", "Unlocked");
-      } finally {
-        odometryLock.unlock();
-      }
-    } else {
-      Logger.recordOutput("LoggedTracer/OdometryLock", "Locked");
-    }
     odometryLock.lock(); // Prevents odometry updates while reading data
-    LoggedTracer.record("DriveIntoLock");
-    LoggedTracer.reset();
     gyroIO.updateInputs(gyroInputs);
-    LoggedTracer.record("DriveUpdateGyro");
-    Logger.processInputs("Drive/Gyro", gyroInputs);
-    LoggedTracer.record("DriveInputsGyro");
     for (var module : modules) {
       module.updateInputs();
     }
     odometryLock.unlock();
-    LoggedTracer.record("DriveInputs");
+
     // Call periodic on modules
     for (var module : modules) {
       module.periodic();
@@ -193,7 +177,6 @@ public class Drive extends SubsystemBase {
     // Update gyro alert
     gyroDisconnectedAlert.set(
         !gyroDebouncer.calculate(gyroInputs.connected) && Constants.getMode() != Mode.SIM);
-    LoggedTracer.record("DrivePriodic");
   }
 
   /**

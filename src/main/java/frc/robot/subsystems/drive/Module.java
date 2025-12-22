@@ -10,7 +10,6 @@ import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 import frc.robot.Constants;
-import frc.robot.util.LoggedTracer;
 import frc.robot.util.LoggedTunableNumber;
 import org.littletonrobotics.junction.Logger;
 
@@ -32,19 +31,19 @@ public class Module {
       case REAL, REPLAY -> {
         drivekS.initDefault(0);
         drivekV.initDefault(0);
-        drivekP.initDefault(5);
+        drivekP.initDefault(5.0);
         drivekD.initDefault(0);
         turnkS.initDefault(0);
-        turnkP.initDefault(0);
+        turnkP.initDefault(10.0);
         turnkD.initDefault(0);
       }
       case SIM -> {
         drivekS.initDefault(0);
         drivekV.initDefault(0);
-        drivekP.initDefault(100);
-        drivekD.initDefault(0.5);
+        drivekP.initDefault(0.1);
+        drivekD.initDefault(0);
         turnkS.initDefault(0);
-        turnkP.initDefault(5);
+        turnkP.initDefault(10.0);
         turnkD.initDefault(0);
       }
     }
@@ -105,9 +104,7 @@ public class Module {
 
   public void updateInputs() {
     io.updateInputs(inputs);
-    LoggedTracer.record("DriveUpdateInputsModule-" + inputsKey);
     Logger.processInputs(inputsKey, inputs);
-    LoggedTracer.record("DriveInputsModule-" + inputsKey);
   }
 
   public void periodic() {

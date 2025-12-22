@@ -94,12 +94,15 @@ public class DriveCommands {
           // Convert to field relative speeds & send command
           ChassisSpeeds speeds =
               new ChassisSpeeds(
-                  linearVelocity.getX() * getAdjustedMaxLinearVelocity(),
-                  linearVelocity.getY() * getAdjustedMaxLinearVelocity(),
+                  linearVelocity.getX() * DriveConstants.maxLinearVelocity,
+                  linearVelocity.getY() * DriveConstants.maxLinearVelocity,
                   omega * DriveConstants.maxAngularVelocity);
           drive.runVelocity(
               ChassisSpeeds.fromFieldRelativeSpeeds(
-                  speeds, AllianceFlipUtil.apply(drive.getRotation())));
+                  speeds,
+                  AllianceFlipUtil.shouldFlip()
+                      ? drive.getRotation().rotateBy(Rotation2d.kPi)
+                      : drive.getRotation()));
         },
         drive);
   }
@@ -144,7 +147,10 @@ public class DriveCommands {
                       omega);
               drive.runVelocity(
                   ChassisSpeeds.fromFieldRelativeSpeeds(
-                      speeds, AllianceFlipUtil.apply(drive.getRotation())));
+                      speeds,
+                      AllianceFlipUtil.shouldFlip()
+                          ? drive.getRotation().rotateBy(Rotation2d.kPi)
+                          : drive.getRotation()));
             },
             drive)
 
@@ -197,7 +203,10 @@ public class DriveCommands {
                       omega);
               drive.runVelocity(
                   ChassisSpeeds.fromFieldRelativeSpeeds(
-                      speeds, AllianceFlipUtil.apply(drive.getRotation())));
+                      speeds,
+                      AllianceFlipUtil.shouldFlip()
+                          ? drive.getRotation().rotateBy(Rotation2d.kPi)
+                          : drive.getRotation()));
             },
             drive)
 

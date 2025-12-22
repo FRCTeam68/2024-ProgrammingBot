@@ -3,6 +3,8 @@ package frc.robot;
 import com.ctre.phoenix6.configs.SlotConfigs;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
+import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
@@ -38,6 +40,7 @@ import frc.robot.subsystems.wrist.Wrist;
 import frc.robot.subsystems.wrist.WristIO;
 import frc.robot.subsystems.wrist.WristIOReal;
 import frc.robot.subsystems.wrist.WristIOSim;
+import frc.robot.util.AllianceFlipUtil;
 import frc.robot.util.AutonUtil;
 import frc.robot.util.FollowPathUtil;
 import org.littletonrobotics.junction.networktables.LoggedDashboardChooser;
@@ -245,10 +248,13 @@ public class RobotContainer {
             () -> -driverController.getLeftX(),
             () -> -driverController.getRightX()));
 
-    driverController.povDown().onTrue(TestCommands.runRoller(intake));
+    // driverController.povDown().onTrue(TestCommands.runRoller(intake));
     driverController.povLeft().onTrue(TestCommands.runRoller(feederLower));
     driverController.povRight().onTrue(TestCommands.runRoller(feederUpper));
-    driverController.povUp().onTrue(TestCommands.runShooter(shooter));
+    // driverController.povUp().onTrue(TestCommands.runShooter(shooter));
+
+    driverController.povDown().onTrue(TestCommands.runWrist(wrist, -10));
+    driverController.povUp().onTrue(TestCommands.runWrist(wrist, 10));
 
     // driverController
     //     .start()
@@ -308,16 +314,16 @@ public class RobotContainer {
     //         DriveCommands.AutopilotDriveToPose(
     //             drive, () -> new Pose2d(8, 1, new Rotation2d()), null));
 
-    // driverController
-    //     .back()
-    //     .onTrue(
-    //         Commands.runOnce(
-    //                 () ->
-    //                     drive.setPose(
-    //                         new Pose2d(
-    //                             drive.getPose().getTranslation(),
-    //                             AllianceFlipUtil.apply(new Rotation2d(0)))))
-    //             .ignoringDisable(true));
+    driverController
+        .back()
+        .onTrue(
+            Commands.runOnce(
+                    () ->
+                        drive.setPose(
+                            new Pose2d(
+                                drive.getPose().getTranslation(),
+                                AllianceFlipUtil.apply(new Rotation2d()))))
+                .ignoringDisable(true));
     driverController.start().onTrue(Commands.runOnce(() -> stopSubsystems()));
   }
 

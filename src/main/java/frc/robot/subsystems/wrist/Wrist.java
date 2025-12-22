@@ -55,7 +55,8 @@ public class Wrist extends SubsystemBase {
     this.drivePoseSupplier = drivePoseSupplier;
     this.io = io;
 
-    setPosition(startingElevation);
+    // setPosition(startingElevation);
+    setPosition(0);
   }
 
   public void periodic() {

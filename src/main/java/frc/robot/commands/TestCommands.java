@@ -4,6 +4,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import frc.robot.subsystems.rollers.RollerSystem;
 import frc.robot.subsystems.shooter.Shooter;
+import frc.robot.subsystems.wrist.Wrist;
 
 public class TestCommands {
   public static Command runRoller(RollerSystem system) {
@@ -18,5 +19,9 @@ public class TestCommands {
         Commands.runOnce(() -> system.runVolts(2, 2)),
         Commands.waitSeconds(2),
         Commands.runOnce(() -> system.runVolts(0, 0)));
+  }
+
+  public static Command runWrist(Wrist system, double offset) {
+    return Commands.runOnce(() -> system.runPosition(system.getPosition() + offset));
   }
 }

@@ -19,9 +19,9 @@ public final class DriveConstants {
   public static final String canbus = "rio";
   public static final double trackWidthX = Units.inchesToMeters(22.5); // meters
   public static final double trackWidthY = Units.inchesToMeters(22.5); // meters
-  public static final double driveReduction = 5.88;
+  public static final double driveReduction = 5.14;
   public static final double turnReduction = 12.8;
-  public static final double maxLinearVelocity = 4.85; // meters/second
+  public static final double maxLinearVelocity = 6.27; // meters/second
   public static final double wheelRadius = Units.inchesToMeters(2); // meters
   private static final double mass = 68; // kilograms
   private static final double moi = 1; // kilogram*meters^2
@@ -127,7 +127,7 @@ public final class DriveConstants {
         .driveMotorId(1)
         .turnMotorId(2)
         .encoderId(15)
-        .encoderOffset(Rotation2d.fromRotations(-0.15673828125))
+        .encoderOffset(Rotation2d.fromRotations(-0.1552734375))
         .turnInverted(false)
         .encoderInverted(false)
         .build(),
@@ -136,7 +136,7 @@ public final class DriveConstants {
         .driveMotorId(3)
         .turnMotorId(4)
         .encoderId(16)
-        .encoderOffset(Rotation2d.fromRotations(-0.135498046875))
+        .encoderOffset(Rotation2d.fromRotations(-0.150634765625).rotateBy(Rotation2d.kPi))
         .turnInverted(false)
         .encoderInverted(false)
         .build(),
@@ -145,7 +145,7 @@ public final class DriveConstants {
         .driveMotorId(5)
         .turnMotorId(6)
         .encoderId(17)
-        .encoderOffset(Rotation2d.fromRotations(-0.433837890625))
+        .encoderOffset(Rotation2d.fromRotations(0.19580078125))
         .turnInverted(false)
         .encoderInverted(false)
         .build(),
@@ -154,7 +154,7 @@ public final class DriveConstants {
         .driveMotorId(7)
         .turnMotorId(8)
         .encoderId(18)
-        .encoderOffset(Rotation2d.fromRotations(0.04833984375))
+        .encoderOffset(Rotation2d.fromRotations(0.3154296875).rotateBy(Rotation2d.kPi))
         .turnInverted(false)
         .encoderInverted(false)
         .build(),

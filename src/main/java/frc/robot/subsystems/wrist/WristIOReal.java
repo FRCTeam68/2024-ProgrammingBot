@@ -11,9 +11,8 @@ import com.ctre.phoenix6.configs.Slot2Configs;
 import com.ctre.phoenix6.configs.SlotConfigs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.Follower;
-import com.ctre.phoenix6.controls.MotionMagicTorqueCurrentFOC;
-import com.ctre.phoenix6.controls.MotionMagicVelocityTorqueCurrentFOC;
 import com.ctre.phoenix6.controls.NeutralOut;
+import com.ctre.phoenix6.controls.PositionVoltage;
 import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.hardware.ParentDevice;
 import com.ctre.phoenix6.hardware.TalonFX;
@@ -34,7 +33,7 @@ import lombok.Getter;
 
 /** Generic roller IO implementation for a roller or series of rollers using a Kraken. */
 public class WristIOReal implements WristIO {
-  @Getter private static final double reduction = 5 * (64 / 18);
+  @Getter private static final double reduction = 10.0 * 7.0 * (64.0 / 18.0);
   private final GravityTypeValue gravityType = GravityTypeValue.Arm_Cosine;
 
   // Hardware
@@ -61,19 +60,22 @@ public class WristIOReal implements WristIO {
 
   // Control requests
   private final VoltageOut voltageOut = new VoltageOut(0.0).withEnableFOC(true);
-  private final MotionMagicVelocityTorqueCurrentFOC velocityOut =
-      new MotionMagicVelocityTorqueCurrentFOC(0);
-  private final MotionMagicTorqueCurrentFOC positionOut = new MotionMagicTorqueCurrentFOC(0);
+  // private final MotionMagicVelocityTorqueCurrentFOC velocityOut =
+  //     new MotionMagicVelocityTorqueCurrentFOC(0);
+  // private final MotionMagicTorqueCurrentFOC positionOut = new MotionMagicTorqueCurrentFOC(0);
+  // private final MotionMagicVelocityVoltage velocityOut =
+  //     new MotionMagicVelocityVoltage(0).withEnableFOC(true);
+  // private final MotionMagicVoltage positionOut = new MotionMagicVoltage(0).withEnableFOC(true);
+  private final PositionVoltage positionOut = new PositionVoltage(0).withEnableFOC(true);
   private final NeutralOut neutralOut = new NeutralOut();
 
   public WristIOReal() {
     talon = new TalonFX(32, "rio");
     followerTalon = new TalonFX(33, "rio");
-    followerTalon.setControl(new Follower(talon.getDeviceID(), true));
 
     // Configure Motor
     config.MotorOutput.Inverted = InvertedValue.CounterClockwise_Positive;
-    config.MotorOutput.NeutralMode = NeutralModeValue.Brake;
+    config.MotorOutput.NeutralMode = NeutralModeValue.Coast;
     // Current limits
     config.CurrentLimits.StatorCurrentLimitEnable = true;
     config.CurrentLimits.StatorCurrentLimit = 120;
@@ -90,6 +92,7 @@ public class WristIOReal implements WristIO {
     // Feedback
     config.Feedback.SensorToMechanismRatio = reduction;
     tryUntilOk(5, () -> talon.getConfigurator().apply(config, 0.25));
+    followerTalon.setControl(new Follower(talon.getDeviceID(), true));
 
     // Configure status signals
     leaderPosition = talon.getPosition();

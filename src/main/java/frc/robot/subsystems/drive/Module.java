@@ -29,12 +29,12 @@ public class Module {
   static {
     switch (Constants.getMode()) {
       case REAL, REPLAY -> {
-        drivekS.initDefault(0);
+        drivekS.initDefault(0.01);
         drivekV.initDefault(0);
-        drivekP.initDefault(0.1);
+        drivekP.initDefault(2.0);
         drivekD.initDefault(0);
-        turnkS.initDefault(0);
-        turnkP.initDefault(5.0);
+        turnkS.initDefault(2);
+        turnkP.initDefault(50.0);
         turnkD.initDefault(0);
       }
       case SIM -> {

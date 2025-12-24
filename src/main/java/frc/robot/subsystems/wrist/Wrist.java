@@ -19,7 +19,7 @@ import org.littletonrobotics.junction.AutoLogOutput;
 import org.littletonrobotics.junction.Logger;
 
 public class Wrist extends SubsystemBase {
-  @Getter private final double minimum = 0;
+  @Getter private final double minimum = 10;
   @Getter private final double maximum = 45;
   @Getter private final double startingElevation = 45;
 
@@ -37,9 +37,10 @@ public class Wrist extends SubsystemBase {
   private final Alert followerTempAlert =
       new Alert("Follower wrist motor (right) is too hot!", AlertType.kWarning);
 
-  private LoggedTunableNumber kP0 = new LoggedTunableNumber("Wrist/Slot0/kP", 10);
+  private LoggedTunableNumber kP0 = new LoggedTunableNumber("Wrist/Slot0/kP", 1100);
   private LoggedTunableNumber kD0 = new LoggedTunableNumber("Wrist/Slot0/kD", 0);
-  private LoggedTunableNumber kS0 = new LoggedTunableNumber("Wrist/Slot0/kS", 0.5);
+  private LoggedTunableNumber kS0 = new LoggedTunableNumber("Wrist/Slot0/kS", 0.227);
+  private LoggedTunableNumber kG0 = new LoggedTunableNumber("Wrist/Slot0/kG", 0.03);
 
   private LoggedTunableNumber setpointBandPosition =
       new LoggedTunableNumber("Wrist/PositionSetpointBandPosition", 0.2);
@@ -55,8 +56,7 @@ public class Wrist extends SubsystemBase {
     this.drivePoseSupplier = drivePoseSupplier;
     this.io = io;
 
-    // setPosition(startingElevation);
-    setPosition(0);
+    setPosition(startingElevation);
   }
 
   public void periodic() {
@@ -94,12 +94,16 @@ public class Wrist extends SubsystemBase {
 
     // Update tunable numbers
     if (Constants.tuningMode) {
-      if (kP0.hasChanged(hashCode()) || kD0.hasChanged(hashCode()) || kS0.hasChanged(hashCode())) {
+      if (kP0.hasChanged(hashCode())
+          || kD0.hasChanged(hashCode())
+          || kS0.hasChanged(hashCode())
+          || kG0.hasChanged(hashCode())) {
         io.setPID(
             new SlotConfigs()
                 .withKP(kP0.getAsDouble())
                 .withKD(kD0.getAsDouble())
-                .withKS(kS0.getAsDouble()));
+                .withKS(kS0.getAsDouble())
+                .withKG(kG0.getAsDouble()));
       }
     }
   }
@@ -127,7 +131,7 @@ public class Wrist extends SubsystemBase {
   public void runPosition(double elevation) {
     setpoint = MathUtil.clamp(elevation, minimum, maximum);
     mode = ControlMode.Position;
-    io.runPosition(elevation, 0);
+    io.runPosition(setpoint, 0);
   }
 
   /** Stop motor */

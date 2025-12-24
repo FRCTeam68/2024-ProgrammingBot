@@ -32,7 +32,7 @@ public class ShootCommands {
   public static Command setStaticShotConfig(Shooter shooter, Wrist wrist, ShooterConfig config) {
     return Commands.runOnce(
         () -> {
-          wrist.setPosition(config.elevation);
+          wrist.runPosition(config.elevation);
           shooter.runVelocity(config.upperVelocity, config.lowerVelocity);
         },
         shooter,

@@ -21,11 +21,11 @@ public class NoteSensor extends SubsystemBase {
   private DigitalInput inputDIO = new DigitalInput(0);
   private LoggedNetworkBoolean inputSim;
 
-  private Debouncer inputDebouncer = new Debouncer(0.06, DebounceType.kRising);
+  private Debouncer inputDebouncer = new Debouncer(0.01, DebounceType.kRising);
 
   public NoteSensor() {
     switch (Constants.getMode()) {
-      case REAL, REPLAY -> inputRaw = inputDIO::get;
+      case REAL, REPLAY -> inputRaw = () -> !inputDIO.get();
       case SIM -> {
         inputSim = new LoggedNetworkBoolean("NoteSensor/SimulatedInput", true);
         inputRaw = inputSim::get;

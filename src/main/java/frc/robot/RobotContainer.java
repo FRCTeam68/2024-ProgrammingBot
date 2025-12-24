@@ -15,11 +15,13 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandPS4Controller;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import frc.robot.commands.DriveCommands;
-import frc.robot.commands.TestCommands;
+import frc.robot.commands.IntakeCommands;
+import frc.robot.commands.ShootCommands;
 import frc.robot.commands.auton.AutonCommands;
 import frc.robot.commands.auton.AutonSequence;
 import frc.robot.commands.auton.AutonSequenceCenter;
 import frc.robot.commands.auton.AutonSequenceSide;
+import frc.robot.subsystems.ShooterConstants;
 import frc.robot.subsystems.drive.Drive;
 import frc.robot.subsystems.drive.DriveConstants;
 import frc.robot.subsystems.drive.GyroIO;
@@ -87,37 +89,13 @@ public class RobotContainer {
   public RobotContainer() {
     switch (Constants.getMode()) {
       case REAL -> {
-        switch (1) {
-          case 1:
-            drive =
-                new Drive(
-                    new GyroIOPigeon2(),
-                    new ModuleIOReal(DriveConstants.moduleConfigs[0]),
-                    new ModuleIOReal(DriveConstants.moduleConfigs[1]),
-                    new ModuleIOReal(DriveConstants.moduleConfigs[2]),
-                    new ModuleIOReal(DriveConstants.moduleConfigs[3]));
-            break;
-
-          case 2:
-            drive =
-                new Drive(
-                    new GyroIOPigeon2(),
-                    new ModuleIOSim(),
-                    new ModuleIOSim(),
-                    new ModuleIOReal(DriveConstants.moduleConfigs[2]),
-                    new ModuleIOReal(DriveConstants.moduleConfigs[3]));
-            break;
-
-          case 3:
-            drive =
-                new Drive(
-                    new GyroIO() {},
-                    new ModuleIOSim(),
-                    new ModuleIOSim(),
-                    new ModuleIOSim(),
-                    new ModuleIOSim());
-            break;
-        }
+        drive =
+            new Drive(
+                new GyroIOPigeon2(),
+                new ModuleIOReal(DriveConstants.moduleConfigs[0]),
+                new ModuleIOReal(DriveConstants.moduleConfigs[1]),
+                new ModuleIOReal(DriveConstants.moduleConfigs[2]),
+                new ModuleIOReal(DriveConstants.moduleConfigs[3]));
 
         // vision = new Vision(drive::addVisionMeasurement, drive::getPose,
         // drive::getFieldVelocity);
@@ -249,12 +227,16 @@ public class RobotContainer {
             () -> -driverController.getRightX()));
 
     // driverController.povDown().onTrue(TestCommands.runRoller(intake));
-    driverController.povLeft().onTrue(TestCommands.runRoller(feederLower));
-    driverController.povRight().onTrue(TestCommands.runRoller(feederUpper));
+    // driverController.povLeft().onTrue(TestCommands.runRoller(feederLower));
+    // driverController.povRight().onTrue(TestCommands.runRoller(feederUpper));
     // driverController.povUp().onTrue(TestCommands.runShooter(shooter));
 
-    driverController.povDown().onTrue(TestCommands.runWrist(wrist, -10));
-    driverController.povUp().onTrue(TestCommands.runWrist(wrist, 10));
+    // driverController.povDown().onTrue(TestCommands.runWrist(wrist, 0));
+    driverController
+        .povLeft()
+        .onTrue(Commands.runOnce(() -> wrist.runPosition(wrist.getStartingElevation())));
+    // driverController.povRight().onTrue(TestCommands.runRoller(feederUpper));
+    // driverController.povUp().onTrue(TestCommands.runWrist(wrist, 30));
 
     // driverController
     //     .start()
@@ -302,17 +284,20 @@ public class RobotContainer {
     //     .rightTrigger()
     //     .onTrue(Commands.runOnce(() -> shooter.runVelocity(50, 0, 100, 0)));
     // driverController.rightBumper().onTrue(Commands.runOnce(() -> shooter.runVolts(6, 2)));
-    // // driverController
-    // //     .rightBumper()
-    // //     .onTrue(
-    // //         IntakeCommands.Intake(
-    // //             intake, feederLower, feederUpper, wrist, () -> noteSensor.isHaveNote()));
 
-    // driverController
-    //     .povLeft()
-    //     .whileTrue(
-    //         DriveCommands.AutopilotDriveToPose(
-    //             drive, () -> new Pose2d(8, 1, new Rotation2d()), null));
+    driverController
+        .a()
+        .onTrue(ShootCommands.setStaticShotConfig(shooter, wrist, ShooterConstants.amp));
+
+    driverController.rightTrigger().whileTrue(ShootCommands.shootManual(feederUpper));
+
+    driverController
+        .leftTrigger()
+        .onTrue(IntakeCommands.intake(wrist, intake, feederLower, feederUpper, noteSensor));
+
+    driverController
+        .leftBumper()
+        .whileTrue(IntakeCommands.outtake(wrist, intake, feederLower, feederUpper));
 
     driverController
         .back()
@@ -345,10 +330,10 @@ public class RobotContainer {
   /** Stops all subsystems and cancels any scheduled commands. */
   public void stopSubsystems() {
     CommandScheduler.getInstance().cancelAll();
-    // drive.stop();
+    drive.stop();
     shooter.stop();
-    // wrist.stop();
-    // intake.stop();
+    wrist.stop();
+    intake.stop();
     feederLower.stop();
     feederUpper.stop();
   }

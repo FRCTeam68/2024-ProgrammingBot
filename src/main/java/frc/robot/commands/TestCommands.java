@@ -22,6 +22,6 @@ public class TestCommands {
   }
 
   public static Command runWrist(Wrist system, double offset) {
-    return Commands.runOnce(() -> system.runPosition(system.getPosition() + offset));
+    return Commands.runOnce(() -> system.runPosition(offset));
   }
 }

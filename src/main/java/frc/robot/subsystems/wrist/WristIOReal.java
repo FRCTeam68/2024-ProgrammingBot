@@ -74,8 +74,8 @@ public class WristIOReal implements WristIO {
     followerTalon = new TalonFX(33, "rio");
 
     // Configure Motor
-    config.MotorOutput.Inverted = InvertedValue.CounterClockwise_Positive;
-    config.MotorOutput.NeutralMode = NeutralModeValue.Coast;
+    config.MotorOutput.Inverted = InvertedValue.Clockwise_Positive;
+    config.MotorOutput.NeutralMode = NeutralModeValue.Brake;
     // Current limits
     config.CurrentLimits.StatorCurrentLimitEnable = true;
     config.CurrentLimits.StatorCurrentLimit = 120;
@@ -191,7 +191,7 @@ public class WristIOReal implements WristIO {
       SlotConfigs slotConfig =
           new SlotConfigs()
               .withGravityType(gravityType)
-              .withStaticFeedforwardSign(StaticFeedforwardSignValue.UseVelocitySign)
+              .withStaticFeedforwardSign(StaticFeedforwardSignValue.UseClosedLoopSign)
               .withKP(newConfig[i].kP)
               .withKI(newConfig[i].kI)
               .withKD(newConfig[i].kD)

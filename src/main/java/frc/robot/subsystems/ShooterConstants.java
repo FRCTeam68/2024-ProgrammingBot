@@ -28,7 +28,7 @@ public final class ShooterConstants {
         dynamicLowerVelocitynEquation = (x) -> Math.pow(x, 2) + 10;
       }
       default -> {
-        amp = new ShooterConfig(0, 0, 0);
+        amp = new ShooterConfig(25, 10, 10);
         subwoofer = new ShooterConfig(0, 0, 0);
         stage = new ShooterConfig(0, 0, 0);
         trap = new ShooterConfig(0, 0, 0);

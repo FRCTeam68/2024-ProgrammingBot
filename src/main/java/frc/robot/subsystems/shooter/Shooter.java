@@ -206,19 +206,14 @@ public class Shooter extends SubsystemBase {
   private void setPID() {
     SlotConfigs[] newconfig = new SlotConfigs[kP.length];
     for (int i = 0; i < Math.min(newconfig.length, 3); i++) {
-      newconfig[i] =
-          new SlotConfigs()
-              .withKP(kP[i].getAsDouble())
-              .withKD(kD[i].getAsDouble())
-              .withKS(kS[i].getAsDouble());
+      newconfig[i] = new SlotConfigs().withKP(kP[i].get()).withKD(kD[i].get()).withKS(kS[i].get());
     }
     upperIO.setPID(newconfig);
     lowerIO.setPID(newconfig);
   }
 
   private void setMotionMagic() {
-    MotionMagicConfigs newconfig =
-        new MotionMagicConfigs().withMotionMagicAcceleration(mmA.getAsDouble());
+    MotionMagicConfigs newconfig = new MotionMagicConfigs().withMotionMagicAcceleration(mmA.get());
     upperIO.setMotionMagic(newconfig);
     lowerIO.setMotionMagic(newconfig);
   }
@@ -227,8 +222,7 @@ public class Shooter extends SubsystemBase {
   private boolean upperAtVelocity() {
     switch (controlMode) {
       case Velocity:
-        return Math.abs(upperSetpoint - upperInputs.velocityRotsPerSec)
-            < setpointBandSpeed.getAsDouble();
+        return Math.abs(upperSetpoint - upperInputs.velocityRotsPerSec) < setpointBandSpeed.get();
       default:
         return false;
     }
@@ -238,8 +232,7 @@ public class Shooter extends SubsystemBase {
   private boolean lowerAtVelocity() {
     switch (controlMode) {
       case Velocity:
-        return Math.abs(lowerSetpoint - lowerInputs.velocityRotsPerSec)
-            < setpointBandSpeed.getAsDouble();
+        return Math.abs(lowerSetpoint - lowerInputs.velocityRotsPerSec) < setpointBandSpeed.get();
       default:
         return false;
     }

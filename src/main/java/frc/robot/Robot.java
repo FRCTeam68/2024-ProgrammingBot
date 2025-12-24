@@ -93,10 +93,6 @@ public class Robot extends LoggedRobot {
     FollowPathCommand.warmupCommand().schedule();
     PathfindingCommand.warmupCommand().schedule();
 
-    // CommandScheduler.getInstance()
-    //     .onCommandInitialize((Command command) -> Logger.recordOutput("test",
-    // command.getName()));
-
     // Set start time for logged tracer
     LoggedTracer.reset();
 

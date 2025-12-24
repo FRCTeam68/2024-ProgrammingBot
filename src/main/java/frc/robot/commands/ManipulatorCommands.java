@@ -9,9 +9,9 @@ public class ManipulatorCommands {
     Command command =
         Commands.sequence(
             Commands.runOnce(() -> wrist.runVolts(3)),
-            Commands.waitUntil(() -> wrist.getLeaderTorqueCurrent() > 20),
+            Commands.waitUntil(() -> wrist.getLeaderTorqueCurrent() > 5),
             Commands.runOnce(() -> wrist.stop()),
-            Commands.runOnce(() -> wrist.setPosition(wrist.getMaximum())));
+            Commands.runOnce(() -> wrist.setPosition(Wrist.getMaximum())));
     command.addRequirements(wrist);
     return command;
   }

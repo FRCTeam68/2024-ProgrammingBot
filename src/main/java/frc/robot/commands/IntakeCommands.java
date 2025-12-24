@@ -2,7 +2,7 @@ package frc.robot.commands;
 
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
-import edu.wpi.first.wpilibj2.command.DeferredCommand;
+import edu.wpi.first.wpilibj2.command.Subsystem;
 import frc.robot.RobotState;
 import frc.robot.subsystems.rollers.RollerSystem;
 import frc.robot.subsystems.sensors.NoteSensor;
@@ -16,7 +16,15 @@ public class IntakeCommands {
       RollerSystem feederLower,
       RollerSystem feederUpper,
       NoteSensor noteSensor) {
-    return new DeferredCommand(
+    // Configure subsystem requirements
+    Set<Subsystem> requirements;
+    if (RobotState.haveNote || noteSensor.isDetected()) {
+      requirements = Set.of();
+    } else {
+      requirements = Set.of(wrist, intake, feederLower, feederUpper);
+    }
+
+    return Commands.defer(
         () -> {
           // initialization
           Command command = Commands.none();
@@ -30,7 +38,7 @@ public class IntakeCommands {
           if (!RobotState.haveNote) {
             command =
                 Commands.sequence(
-                    Commands.runOnce(() -> wrist.runPosition(wrist.getIntake().getAsDouble())),
+                    Commands.runOnce(() -> wrist.runPosition(wrist.getIntake().get())),
                     Commands.waitUntil(() -> wrist.atSetpoint()),
                     Commands.runOnce(() -> intake.runVolts(7)),
                     Commands.runOnce(() -> feederLower.runVolts(7)),
@@ -45,13 +53,12 @@ public class IntakeCommands {
           // execute command
           return command;
         },
-        Set.of(wrist, intake, feederLower, feederUpper));
+        requirements);
   }
 
   public static Command outtake(
       Wrist wrist, RollerSystem intake, RollerSystem feederLower, RollerSystem feederUpper) {
     return Commands.sequence(
-            Commands.runOnce(() -> RobotState.haveNote = false),
             Commands.runOnce(() -> wrist.runPosition(wrist.getIntake().get())),
             Commands.waitUntil(() -> wrist.atSetpoint()),
             Commands.runOnce(
@@ -60,13 +67,12 @@ public class IntakeCommands {
                   feederLower.runVolts(-7);
                   feederUpper.runVolts(-7);
                 }))
+        .beforeStarting(() -> RobotState.haveNote = false)
         .finallyDo(
-            () ->
-                Commands.runOnce(
-                    () -> {
-                      intake.runVolts(0);
-                      feederLower.runVolts(0);
-                      feederUpper.runVolts(0);
-                    }));
+            () -> {
+              intake.stop();
+              feederLower.stop();
+              feederUpper.stop();
+            });
   }
 }

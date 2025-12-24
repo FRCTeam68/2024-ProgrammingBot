@@ -70,6 +70,7 @@ public class WristIOReal implements WristIO {
   private final NeutralOut neutralOut = new NeutralOut();
 
   public WristIOReal() {
+    // Left motor is
     talon = new TalonFX(32, "rio");
     followerTalon = new TalonFX(33, "rio");
 
@@ -84,11 +85,10 @@ public class WristIOReal implements WristIO {
     config.CurrentLimits.SupplyCurrentLowerLimit = 40;
     config.CurrentLimits.SupplyCurrentLowerTime = 1;
     // Motion limits
-    // TODO: configure soft limits
-    // config.SoftwareLimitSwitch.ForwardSoftLimitEnable = true;
-    // config.SoftwareLimitSwitch.ForwardSoftLimitThreshold = 5.4;
-    // config.SoftwareLimitSwitch.ReverseSoftLimitEnable = true;
-    // config.SoftwareLimitSwitch.ReverseSoftLimitThreshold = 0;
+    config.SoftwareLimitSwitch.ForwardSoftLimitEnable = true;
+    config.SoftwareLimitSwitch.ForwardSoftLimitThreshold = Wrist.getMaximum();
+    config.SoftwareLimitSwitch.ReverseSoftLimitEnable = true;
+    config.SoftwareLimitSwitch.ReverseSoftLimitThreshold = Wrist.getMinimum();
     // Feedback
     config.Feedback.SensorToMechanismRatio = reduction;
     tryUntilOk(5, () -> talon.getConfigurator().apply(config, 0.25));
@@ -214,6 +214,13 @@ public class WristIOReal implements WristIO {
     config.MotionMagic.MotionMagicCruiseVelocity = newconfig.MotionMagicCruiseVelocity;
     config.MotionMagic.MotionMagicAcceleration = newconfig.MotionMagicAcceleration;
     config.MotionMagic.MotionMagicJerk = newconfig.MotionMagicJerk;
+    tryUntilOk(5, () -> talon.getConfigurator().apply(config, 0.25));
+  }
+
+  @Override
+  public void setSoftwareLimitsEnabled(boolean enabled) {
+    config.SoftwareLimitSwitch.ForwardSoftLimitEnable = enabled;
+    config.SoftwareLimitSwitch.ReverseSoftLimitEnable = enabled;
     tryUntilOk(5, () -> talon.getConfigurator().apply(config, 0.25));
   }
 }

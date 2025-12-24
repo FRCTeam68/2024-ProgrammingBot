@@ -57,11 +57,7 @@ public class RollerSystem extends SubsystemBase {
     // TODO: do we always check this. we wouldn't need to call set pid in rollersystem
     // Update tunable numbers
     if (kP.hasChanged(hashCode()) || kD.hasChanged(hashCode()) || kS.hasChanged(hashCode())) {
-      io.setPID(
-          new Slot0Configs()
-              .withKP(kP.getAsDouble())
-              .withKD(kD.getAsDouble())
-              .withKS(kS.getAsDouble()));
+      io.setPID(new Slot0Configs().withKP(kP.get()).withKD(kD.get()).withKS(kS.get()));
     }
   }
 

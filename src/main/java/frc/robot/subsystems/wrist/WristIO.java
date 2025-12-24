@@ -58,4 +58,7 @@ public interface WristIO {
 
   /** Set motion magic velocity, acceleration and jerk. */
   public default void setMotionMagic(MotionMagicConfigs newconfig) {}
+
+  /** Enables the software motion limits */
+  public default void setSoftwareLimitsEnabled(boolean enabled) {}
 }

@@ -85,7 +85,6 @@ public class RobotContainer {
   private final LoggedDashboardChooser<AutonSequence> autonChooser;
 
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
-  @SuppressWarnings("unused")
   public RobotContainer() {
     switch (Constants.getMode()) {
       case REAL -> {
@@ -194,7 +193,7 @@ public class RobotContainer {
       }
     }
 
-    // intake.initPID(new SlotConfigs().withKP(5).withKD(0).withKS(0));
+    intake.initPID(new SlotConfigs().withKP(5).withKD(0).withKS(0));
 
     feederLower.initPID(new SlotConfigs().withKP(10).withKD(0).withKS(0));
 
@@ -226,17 +225,9 @@ public class RobotContainer {
             () -> -driverController.getLeftX(),
             () -> -driverController.getRightX()));
 
-    // driverController.povDown().onTrue(TestCommands.runRoller(intake));
-    // driverController.povLeft().onTrue(TestCommands.runRoller(feederLower));
-    // driverController.povRight().onTrue(TestCommands.runRoller(feederUpper));
-    // driverController.povUp().onTrue(TestCommands.runShooter(shooter));
-
-    // driverController.povDown().onTrue(TestCommands.runWrist(wrist, 0));
     driverController
         .povLeft()
         .onTrue(Commands.runOnce(() -> wrist.runPosition(wrist.getStartingElevation())));
-    // driverController.povRight().onTrue(TestCommands.runRoller(feederUpper));
-    // driverController.povUp().onTrue(TestCommands.runWrist(wrist, 30));
 
     // driverController
     //     .start()

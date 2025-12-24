@@ -11,6 +11,7 @@ import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
+import frc.robot.RobotState;
 import frc.robot.util.LoggedTunableNumber;
 import frc.robot.util.PhoenixUtil.ControlMode;
 import java.util.function.Supplier;
@@ -19,8 +20,8 @@ import org.littletonrobotics.junction.AutoLogOutput;
 import org.littletonrobotics.junction.Logger;
 
 public class Wrist extends SubsystemBase {
-  @Getter private final double minimum = 10;
-  @Getter private final double maximum = 45;
+  @Getter private static final double minimum = 10;
+  @Getter private static final double maximum = 45;
   @Getter private final double startingElevation = 45;
 
   @Getter
@@ -29,28 +30,28 @@ public class Wrist extends SubsystemBase {
   private final WristIO io;
   protected final WristIOInputsAutoLogged inputs = new WristIOInputsAutoLogged();
   private final Alert leaderDisconnectedAlert =
-      new Alert("Lead wrist motor (left) disconnected.", AlertType.kError);
+      new Alert("Left wrist motor disconnected.", AlertType.kError);
   private final Alert followerDisconnectedAlert =
-      new Alert("Follower wrist motor (right) disconnected.", AlertType.kError);
+      new Alert("Right wrist motor disconnected.", AlertType.kError);
   private final Alert leaderTempAlert =
-      new Alert("Lead wrist motor (left) is too hot!", AlertType.kWarning);
+      new Alert("Left wrist motor is too hot!", AlertType.kWarning);
   private final Alert followerTempAlert =
-      new Alert("Follower wrist motor (right) is too hot!", AlertType.kWarning);
+      new Alert("Right wrist motor is too hot!", AlertType.kWarning);
 
-  private LoggedTunableNumber kP0 = new LoggedTunableNumber("Wrist/Slot0/kP", 1100);
-  private LoggedTunableNumber kD0 = new LoggedTunableNumber("Wrist/Slot0/kD", 0);
-  private LoggedTunableNumber kS0 = new LoggedTunableNumber("Wrist/Slot0/kS", 0.227);
-  private LoggedTunableNumber kG0 = new LoggedTunableNumber("Wrist/Slot0/kG", 0.03);
+  private LoggedTunableNumber kP0 = new LoggedTunableNumber("Wrist/kP", 1100);
+  private LoggedTunableNumber kD0 = new LoggedTunableNumber("Wrist/kD", 0);
+  private LoggedTunableNumber kS0 = new LoggedTunableNumber("Wrist/kS", 0.227);
+  private LoggedTunableNumber kG0 = new LoggedTunableNumber("Wrist/kG", 0.03);
 
   private LoggedTunableNumber setpointBandPosition =
-      new LoggedTunableNumber("Wrist/PositionSetpointBandPosition", 0.2);
+      new LoggedTunableNumber("Wrist/PositionSetpointBandDegrees", 3);
 
   @Getter private double setpoint = 0.0;
 
   @Getter private ControlMode mode = ControlMode.Neutral;
 
-  Pose3d notePose = new Pose3d();
-  Supplier<Pose2d> drivePoseSupplier;
+  private Pose3d notePose = new Pose3d();
+  private final Supplier<Pose2d> drivePoseSupplier;
 
   public Wrist(Supplier<Pose2d> drivePoseSupplier, WristIO io) {
     this.drivePoseSupplier = drivePoseSupplier;
@@ -90,26 +91,20 @@ public class Wrist extends SubsystemBase {
             .rotateAround(
                 new Translation3d(drivePoseSupplier.get().getTranslation()),
                 new Rotation3d(drivePoseSupplier.get().getRotation()));
-    // Logger.recordOutput("RobotPose/Note", RobotState.haveNote ? notePose : null);
+    Logger.recordOutput("RobotPose/Note", RobotState.haveNote ? notePose : null);
 
     // Update tunable numbers
-    if (Constants.tuningMode) {
-      if (kP0.hasChanged(hashCode())
-          || kD0.hasChanged(hashCode())
-          || kS0.hasChanged(hashCode())
-          || kG0.hasChanged(hashCode())) {
-        io.setPID(
-            new SlotConfigs()
-                .withKP(kP0.getAsDouble())
-                .withKD(kD0.getAsDouble())
-                .withKS(kS0.getAsDouble())
-                .withKG(kG0.getAsDouble()));
-      }
+    if (kP0.hasChanged(hashCode())
+        || kD0.hasChanged(hashCode())
+        || kS0.hasChanged(hashCode())
+        || kG0.hasChanged(hashCode())) {
+      io.setPID(
+          new SlotConfigs()
+              .withKP(kP0.get())
+              .withKD(kD0.get())
+              .withKS(kS0.get())
+              .withKG(kG0.get()));
     }
-  }
-
-  public void setAtSetpointBandPosition(LoggedTunableNumber band) {
-    setpointBandPosition = band;
   }
 
   /**

@@ -246,7 +246,9 @@ public class DriveCommands {
                           result.vy(),
                           AngularVelocity.ofRelativeUnits(
                               result.targetAngle().getRadians(), RadiansPerSecond)),
-                      AllianceFlipUtil.apply(drive.getRotation())));
+                      AllianceFlipUtil.shouldFlip()
+                          ? drive.getRotation().rotateBy(Rotation2d.kPi)
+                          : drive.getRotation()));
             },
             drive)
         .beforeStarting(() -> Logger.recordOutput("Autopilot/State", "Moving To Target"))

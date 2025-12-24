@@ -59,11 +59,7 @@ public class MotorTemplate {
 
     // Update tunable numbers
     if (kP0.hasChanged(hashCode()) || kD0.hasChanged(hashCode()) || kS0.hasChanged(hashCode())) {
-      io.setPID(
-          new SlotConfigs()
-              .withKP(kP0.getAsDouble())
-              .withKD(kD0.getAsDouble())
-              .withKS(kS0.getAsDouble()));
+      io.setPID(new SlotConfigs().withKP(kP0.get()).withKD(kD0.get()).withKS(kS0.get()));
     }
 
     if (mmVelocity.hasChanged(hashCode())
@@ -71,9 +67,9 @@ public class MotorTemplate {
         || mmJerk.hasChanged(hashCode())) {
       io.setMotionMagic(
           new MotionMagicConfigs()
-              .withMotionMagicCruiseVelocity(mmVelocity.getAsDouble())
-              .withMotionMagicAcceleration(mmAcceleration.getAsDouble())
-              .withMotionMagicJerk(mmJerk.getAsDouble()));
+              .withMotionMagicCruiseVelocity(mmVelocity.get())
+              .withMotionMagicAcceleration(mmAcceleration.get())
+              .withMotionMagicJerk(mmJerk.get()));
     }
   }
 
@@ -166,10 +162,8 @@ public class MotorTemplate {
   @AutoLogOutput(key = "MotorTemplate/atSetpoint")
   public boolean atSetpoint() {
     return switch (mode) {
-      case Velocity -> Math.abs(setpoint - inputs.velocityRotsPerSec)
-          < setpointBandVelocity.getAsDouble();
-      case Position -> Math.abs(setpoint - inputs.positionRots)
-          < setpointBandPosition.getAsDouble();
+      case Velocity -> Math.abs(setpoint - inputs.velocityRotsPerSec) < setpointBandVelocity.get();
+      case Position -> Math.abs(setpoint - inputs.positionRots) < setpointBandPosition.get();
       default -> false;
     };
   }

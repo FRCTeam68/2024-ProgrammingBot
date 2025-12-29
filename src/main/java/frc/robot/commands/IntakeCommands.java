@@ -44,6 +44,7 @@ public class IntakeCommands {
                     Commands.runOnce(() -> feederLower.runVolts(7)),
                     Commands.runOnce(() -> feederUpper.runVolts(1)),
                     Commands.waitUntil(() -> noteSensor.isDetected()),
+                    // Commands.waitUntil(() -> noteSensor.isTripped()),
                     Commands.runOnce(() -> intake.stop()),
                     Commands.runOnce(() -> feederLower.stop()),
                     Commands.runOnce(() -> feederUpper.stop()),
@@ -57,7 +58,11 @@ public class IntakeCommands {
   }
 
   public static Command outtake(
-      Wrist wrist, RollerSystem intake, RollerSystem feederLower, RollerSystem feederUpper) {
+      Wrist wrist,
+      RollerSystem intake,
+      RollerSystem feederLower,
+      RollerSystem feederUpper,
+      NoteSensor noteSensor) {
     return Commands.sequence(
             Commands.runOnce(() -> wrist.runPosition(wrist.getIntake().get())),
             Commands.waitUntil(() -> wrist.atSetpoint()),
@@ -67,7 +72,12 @@ public class IntakeCommands {
                   feederLower.runVolts(-7);
                   feederUpper.runVolts(-7);
                 }))
-        .beforeStarting(() -> RobotState.haveNote = false)
+        .beforeStarting(
+            () -> {
+              RobotState.haveNote = false;
+              noteSensor.setTripped(false);
+              noteSensor.setDetected(false);
+            })
         .finallyDo(
             () -> {
               intake.stop();

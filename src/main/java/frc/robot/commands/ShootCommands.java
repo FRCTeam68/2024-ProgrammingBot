@@ -5,7 +5,6 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import frc.robot.RobotState;
 import frc.robot.subsystems.ShooterConstants.ShooterConfig;
 import frc.robot.subsystems.rollers.RollerSystem;
-import frc.robot.subsystems.sensors.NoteSensor;
 import frc.robot.subsystems.shooter.Shooter;
 import frc.robot.subsystems.wrist.Wrist;
 
@@ -18,19 +17,16 @@ public class ShootCommands {
    * Manually run upper feeder to shoot note. This can cause a jam if the shooter is not running.
    * Turns off upper feeder when ended.
    */
-  public static Command shootManual(RollerSystem feederUpper, NoteSensor noteSensor) {
+  public static Command shootManual(RollerSystem feederUpper) {
     return Commands.run(() -> feederUpper.runVolts(12), feederUpper)
         .beforeStarting(
             () -> {
               RobotState.haveNote = false;
-              noteSensor.setTripped(false);
-              noteSensor.setDetected(false);
             })
         .finallyDo(() -> feederUpper.stop());
   }
 
-  public static Command shootAutomatic(
-      Shooter shooter, RollerSystem feederUpper, NoteSensor noteSensor) {
+  public static Command shootAutomatic(Shooter shooter, RollerSystem feederUpper) {
     return Commands.sequence(
             Commands.waitUntil(() -> shooter.atSetpoint()),
             Commands.runOnce(() -> feederUpper.runVolts(12)),
@@ -38,8 +34,6 @@ public class ShootCommands {
         .beforeStarting(
             () -> {
               RobotState.haveNote = false;
-              noteSensor.setTripped(false);
-              noteSensor.setDetected(false);
             })
         .finallyDo(
             () -> {

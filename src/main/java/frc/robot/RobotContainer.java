@@ -280,7 +280,7 @@ public class RobotContainer {
         .a()
         .onTrue(ShootCommands.setStaticShotConfig(shooter, wrist, ShooterConstants.amp));
 
-    driverController.rightTrigger().whileTrue(ShootCommands.shootManual(feederUpper, noteSensor));
+    driverController.rightTrigger().whileTrue(ShootCommands.shootManual(feederUpper));
 
     driverController
         .leftTrigger()

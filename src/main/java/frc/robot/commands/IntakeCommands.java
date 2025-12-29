@@ -45,9 +45,9 @@ public class IntakeCommands {
                     Commands.runOnce(() -> feederUpper.runVolts(1)),
                     Commands.waitUntil(() -> noteSensor.isDetected()),
                     // Commands.waitUntil(() -> noteSensor.isTripped()),
-                    Commands.runOnce(() -> intake.stop()),
-                    Commands.runOnce(() -> feederLower.stop()),
                     Commands.runOnce(() -> feederUpper.stop()),
+                    Commands.runOnce(() -> feederLower.stop()),
+                    Commands.runOnce(() -> intake.stop()),
                     Commands.runOnce(() -> RobotState.haveNote = true));
           }
 
@@ -75,8 +75,6 @@ public class IntakeCommands {
         .beforeStarting(
             () -> {
               RobotState.haveNote = false;
-              noteSensor.setTripped(false);
-              noteSensor.setDetected(false);
             })
         .finallyDo(
             () -> {

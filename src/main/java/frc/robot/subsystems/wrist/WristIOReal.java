@@ -86,9 +86,11 @@ public class WristIOReal implements WristIO {
     config.CurrentLimits.SupplyCurrentLowerTime = 1;
     // Motion limits
     config.SoftwareLimitSwitch.ForwardSoftLimitEnable = true;
-    config.SoftwareLimitSwitch.ForwardSoftLimitThreshold = Wrist.getMaximum();
+    config.SoftwareLimitSwitch.ForwardSoftLimitThreshold =
+        Units.degreesToRotations(Wrist.getMaximum());
     config.SoftwareLimitSwitch.ReverseSoftLimitEnable = true;
-    config.SoftwareLimitSwitch.ReverseSoftLimitThreshold = Wrist.getMinimum();
+    config.SoftwareLimitSwitch.ReverseSoftLimitThreshold =
+        Units.degreesToRotations(Wrist.getMinimum());
     // Feedback
     config.Feedback.SensorToMechanismRatio = reduction;
     tryUntilOk(5, () -> talon.getConfigurator().apply(config, 0.25));

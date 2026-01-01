@@ -9,6 +9,7 @@ import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
@@ -16,6 +17,7 @@ import edu.wpi.first.wpilibj2.command.button.CommandPS4Controller;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import frc.robot.commands.DriveCommands;
 import frc.robot.commands.IntakeCommands;
+import frc.robot.commands.ManipulatorCommands;
 import frc.robot.commands.ShootCommands;
 import frc.robot.commands.auton.AutonCommands;
 import frc.robot.commands.auton.AutonSequence;
@@ -204,7 +206,13 @@ public class RobotContainer {
     // noteVisualizer = new NoteVisualizer(drive::getPose, wrist::getPosition,
     // noteSensor::isDetected);
 
-    // Set up dashboard auto chooser
+    // Configure dashboard
+    SmartDashboard.putData(
+        "MoveToStartingPose",
+        Commands.runOnce(() -> wrist.runPosition(wrist.getStartingElevation()), wrist));
+    SmartDashboard.putData("Wrist/FindLimit", ManipulatorCommands.wristZeroByAmps(wrist));
+
+    // Configure auto chooser
     autonChooser = new LoggedDashboardChooser<>("Auto Chooser");
     autonChooser.addDefaultOption("NONE", null);
     autonChooser.addOption("Center", new AutonSequenceCenter());
@@ -213,6 +221,8 @@ public class RobotContainer {
 
     // Configure the button bindings
     configureButtonBindings();
+
+    SmartDashboard.putNumber("test/wristvolts", 0.0);
   }
 
   /** Use this method to define button -> command mappings. */
@@ -226,8 +236,28 @@ public class RobotContainer {
             () -> -driverController.getRightX()));
 
     driverController
-        .povLeft()
+        .x()
         .onTrue(Commands.runOnce(() -> wrist.runPosition(wrist.getStartingElevation())));
+
+    // driverController.povUp().onTrue(TestCommands.subsystem1(intake, feederLower, feederUpper));
+    // driverController.povLeft().onTrue(TestCommands.subsystem2(intake, feederLower, feederUpper));
+    // driverController.povRight().onTrue(TestCommands.subsystem3(intake, feederLower,
+    // feederUpper));
+    // driverController.povDown().onTrue(TestCommands.subsystem4(intake, feederLower, feederUpper));
+
+    driverController
+        .povUp()
+        .onTrue(
+            Commands.runOnce(
+                () -> wrist.runVolts(SmartDashboard.getNumber("test/wristvolts", 0.0)), wrist));
+    // driverController.povLeft().onTrue(TestCommands.subsystem2(intake, feederLower, feederUpper));
+    // driverController.povRight().onTrue(TestCommands.subsystem3(intake, feederLower,
+    // feederUpper));
+    driverController
+        .povDown()
+        .onTrue(
+            Commands.runOnce(
+                () -> wrist.runVolts(-SmartDashboard.getNumber("test/wristvolts", 0.0)), wrist));
 
     // driverController
     //     .start()

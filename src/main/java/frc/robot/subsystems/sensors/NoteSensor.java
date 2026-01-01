@@ -21,7 +21,7 @@ public class NoteSensor extends SubsystemBase {
   private DigitalInput inputDIO = new DigitalInput(0);
   private LoggedNetworkBoolean inputSim;
 
-  private Debouncer inputDebouncer = new Debouncer(0.01, DebounceType.kRising);
+  private Debouncer inputDebouncer = new Debouncer(0.06, DebounceType.kRising);
 
   public NoteSensor() {
     switch (Constants.getMode()) {

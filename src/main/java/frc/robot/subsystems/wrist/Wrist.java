@@ -9,6 +9,8 @@ import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
 import frc.robot.RobotState;
@@ -58,6 +60,13 @@ public class Wrist extends SubsystemBase {
     this.io = io;
 
     setPosition(startingElevation);
+
+    SmartDashboard.putNumber("Wrist/ManualPosition", startingElevation);
+    SmartDashboard.putData(
+        "Wrist/RunToManualPosition",
+        Commands.runOnce(
+            () -> runPosition(SmartDashboard.getNumber("Wrist/ManualPosition", startingElevation)),
+            this));
   }
 
   public void periodic() {

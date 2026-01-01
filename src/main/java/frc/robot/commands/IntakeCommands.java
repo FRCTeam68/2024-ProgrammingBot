@@ -10,6 +10,7 @@ import frc.robot.subsystems.wrist.Wrist;
 import java.util.Set;
 
 public class IntakeCommands {
+  /** Intake note from the ground. This will only stop when a note is seen by the sensor. */
   public static Command intake(
       Wrist wrist,
       RollerSystem intake,
@@ -38,16 +39,19 @@ public class IntakeCommands {
           if (!RobotState.haveNote) {
             command =
                 Commands.sequence(
-                    Commands.runOnce(() -> wrist.runPosition(wrist.getIntake().get())),
-                    Commands.waitUntil(() -> wrist.atSetpoint()),
-                    Commands.runOnce(() -> intake.runVolts(7)),
-                    Commands.runOnce(() -> feederLower.runVolts(7)),
-                    Commands.runOnce(() -> feederUpper.runVolts(1)),
-                    Commands.waitUntil(() -> noteSensor.isDetected()),
-                    Commands.runOnce(() -> intake.stop()),
-                    Commands.runOnce(() -> feederLower.stop()),
-                    Commands.runOnce(() -> feederUpper.stop()),
-                    Commands.runOnce(() -> RobotState.haveNote = true));
+                        Commands.runOnce(() -> wrist.runPosition(wrist.getIntake().get())),
+                        Commands.waitUntil(() -> wrist.atSetpoint()),
+                        Commands.runOnce(() -> intake.runVolts(7)),
+                        Commands.runOnce(() -> feederLower.runVolts(7)),
+                        Commands.runOnce(() -> feederUpper.runVolts(1)),
+                        Commands.waitUntil(() -> noteSensor.isDetected()),
+                        Commands.runOnce(() -> RobotState.haveNote = true))
+                    .finallyDo(
+                        () -> {
+                          intake.stop();
+                          feederLower.stop();
+                          feederUpper.stop();
+                        });
           }
 
           // execute command
@@ -56,8 +60,19 @@ public class IntakeCommands {
         requirements);
   }
 
+  /** Set haveNote to false and eject any note out the intake. */
   public static Command outtake(
       Wrist wrist, RollerSystem intake, RollerSystem feederLower, RollerSystem feederUpper) {
+    // set haveNote to false
+    // run wrist to position
+    // wait until wrist is at position
+    // run rollers
+    // when interupted stop motors
+
+    // does this just work when called while true
+    // need some way to keep the command from ending
+    // does the idle command work how I think?
+
     return Commands.sequence(
             Commands.runOnce(() -> wrist.runPosition(wrist.getIntake().get())),
             Commands.waitUntil(() -> wrist.atSetpoint()),
@@ -66,7 +81,8 @@ public class IntakeCommands {
                   intake.runVolts(-7);
                   feederLower.runVolts(-7);
                   feederUpper.runVolts(-7);
-                }))
+                }),
+            Commands.idle())
         .beforeStarting(() -> RobotState.haveNote = false)
         .finallyDo(
             () -> {

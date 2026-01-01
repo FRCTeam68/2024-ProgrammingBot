@@ -21,7 +21,7 @@ public final class DriveConstants {
   public static final double trackWidthY = Units.inchesToMeters(22.5); // meters
   public static final double driveReduction = 5.14;
   public static final double turnReduction = 12.8;
-  public static final double maxLinearVelocity = 6.27; // meters/second
+  public static final double maxLinearVelocity = 6.27; // meters/second | max:6.27
   public static final double wheelRadius = Units.inchesToMeters(2); // meters
   private static final double mass = 68; // kilograms
   private static final double moi = 1; // kilogram*meters^2

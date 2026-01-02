@@ -153,6 +153,11 @@ public class Wrist extends SubsystemBase {
     io.setPosition(elevation);
   }
 
+  /** Enables the software motion limits */
+  public void setSoftwareLimitsEnabled(boolean enabled) {
+    io.setSoftwareLimitsEnabled(enabled);
+  }
+
   /**
    * Velocity of the mechanism in degrees of elevation per second
    *

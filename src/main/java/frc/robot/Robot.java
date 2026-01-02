@@ -3,12 +3,18 @@ package frc.robot;
 import com.ctre.phoenix6.SignalLogger;
 import com.pathplanner.lib.commands.FollowPathCommand;
 import com.pathplanner.lib.commands.PathfindingCommand;
+import edu.wpi.first.hal.AllianceStationID;
 import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.IterativeRobotBase;
+import edu.wpi.first.wpilibj.RobotController;
+import edu.wpi.first.wpilibj.Watchdog;
+import edu.wpi.first.wpilibj.simulation.DriverStationSim;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import frc.robot.util.CANUtil;
 import frc.robot.util.LoggedTracer;
 import frc.robot.util.PhoenixUtil;
+import java.lang.reflect.Field;
 import org.littletonrobotics.junction.AutoLogOutputManager;
 import org.littletonrobotics.junction.LogFileUtil;
 import org.littletonrobotics.junction.LoggedRobot;
@@ -24,13 +30,16 @@ import org.littletonrobotics.junction.wpilog.WPILOGWriter;
  * project.
  */
 public class Robot extends LoggedRobot {
+  private static final double loopOverrunWarningTimeout = 0.2; // seconds
+
   private Command autonomousCommand;
   private RobotContainer robotContainer;
 
   public Robot() {
     // Record metadata
+    Logger.recordMetadata("Robot", "2024");
     Logger.recordMetadata("TuningMode", Boolean.toString(Constants.tuningMode));
-    Logger.recordMetadata("Mode", Constants.getMode().toString());
+    Logger.recordMetadata("RuntimeType", getRuntimeType().toString());
     Logger.recordMetadata("ProjectName", BuildConstants.MAVEN_NAME);
     Logger.recordMetadata("BuildDate", BuildConstants.BUILD_DATE);
     Logger.recordMetadata("GitSHA", BuildConstants.GIT_SHA);
@@ -71,11 +80,40 @@ public class Robot extends LoggedRobot {
         break;
     }
 
+    // Set up auto logging for RobotState
+    AutoLogOutputManager.addObject(new RobotState());
+
+    // Adjust loop overrun warning timeout
+    try {
+      Field watchdogField = IterativeRobotBase.class.getDeclaredField("m_watchdog");
+      watchdogField.setAccessible(true);
+      Watchdog watchdog = (Watchdog) watchdogField.get(this);
+      watchdog.setTimeout(loopOverrunWarningTimeout);
+    } catch (Exception e) {
+      DriverStation.reportWarning("Failed to disable loop overrun warnings.", false);
+    }
+    CommandScheduler.getInstance().setPeriod(loopOverrunWarningTimeout);
+
     // Rely on our custom alerts for disconnected controllers
     DriverStation.silenceJoystickConnectionWarning(true);
 
+    // Configure DriverStation for sim
+    if (Constants.getMode() == frc.robot.Constants.Mode.SIM) {
+      DriverStationSim.setAllianceStationId(AllianceStationID.Blue1);
+      DriverStationSim.notifyNewData();
+    }
+
     // Instantiate our RobotContainer. This will perform all our button bindings.
     robotContainer = new RobotContainer();
+
+    // Configure brownout voltage
+    RobotController.setBrownoutVoltage(6.0);
+
+    // Warmup pathplanner libraries
+    // This must be done after instantiate RobotContainer
+    // TODO: These are 2 different commands. Do we need both?
+    FollowPathCommand.warmupCommand().schedule();
+    PathfindingCommand.warmupCommand().schedule();
 
     // CTRE Hoot logging
     // do not call the setPath and hoot log will be logged to rio at "/home/lvuser/logs"
@@ -84,14 +122,7 @@ public class Robot extends LoggedRobot {
     // SignalLogger.start();
 
     // Start AdvantageKit logger
-    AutoLogOutputManager.addObject(new RobotState());
     Logger.start();
-
-    // Warmup pathplanner libraries
-    // This must be done after instantiate RobotContainer
-    // TODO: These are 2 different commands. Do we need both?
-    FollowPathCommand.warmupCommand().schedule();
-    PathfindingCommand.warmupCommand().schedule();
 
     // Set start time for logged tracer
     LoggedTracer.reset();

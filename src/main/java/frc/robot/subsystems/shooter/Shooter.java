@@ -41,8 +41,9 @@ public class Shooter extends SubsystemBase {
     new LoggedTunableNumber(pidKey + "0/kS"), new LoggedTunableNumber(pidKey + "1/kS")
   };
   private LoggedTunableNumber mmA = new LoggedTunableNumber("Shooter/MotionMagic/Acceleration");
+  // TODO: should this be a percent error instead
   private LoggedTunableNumber setpointBandSpeed =
-      new LoggedTunableNumber("Shooter/AtSetpointError");
+      new LoggedTunableNumber("Shooter/AtSetpointBandRotsPerSec");
 
   {
     kP[0].initDefault(5);

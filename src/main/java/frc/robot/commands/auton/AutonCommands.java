@@ -32,7 +32,7 @@ public class AutonCommands {
       AutonSequence root) {
     if (Constants.getMode() == Mode.SIM) {
       drive.setPose(AutonUtil.getStartingPose());
-      wrist.setPosition(wrist.getStartingElevation());
+      wrist.setPosition(Wrist.getStartingElevation());
     }
 
     RobotState.haveNote = true;

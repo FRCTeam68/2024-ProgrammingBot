@@ -3,6 +3,7 @@ package frc.robot.subsystems.rollers;
 import static frc.robot.util.PhoenixUtil.tryUntilOk;
 
 import com.ctre.phoenix6.BaseStatusSignal;
+import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.configs.Slot0Configs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
@@ -45,12 +46,7 @@ public class RollerSystemIOTalonFX implements RollerSystemIO {
 
   /**
    * @param id CAN id of motor.
-   * @param canbus Name of the CAN bus this device is on.
-   *     <ul>
-   *       <li>"rio" for the native roboRIO CAN bus
-   *       <li>"*" for any CANivore seen by the program
-   *     </ul>
-   *
+   * @param canbus CAN bus this device is on.
    * @param currentLimitAmps Max supply current. Supply current is limited to 40 amps after 1
    *     second.
    * @param invertedValue Positive direction of the motor when looking at the face of the motor.
@@ -60,7 +56,7 @@ public class RollerSystemIOTalonFX implements RollerSystemIO {
    */
   public RollerSystemIOTalonFX(
       int id,
-      String canbus,
+      CANBus canbus,
       int currentLimitAmps,
       InvertedValue invertedValue,
       NeutralModeValue neutralModeValue,
@@ -97,7 +93,7 @@ public class RollerSystemIOTalonFX implements RollerSystemIO {
     tryUntilOk(5, () -> BaseStatusSignal.setUpdateFrequencyForAll(4, tempCelsius));
     tryUntilOk(5, () -> ParentDevice.optimizeBusUtilizationForAll(talon));
     PhoenixUtil.registerSignals(
-        (canbus == "rio") ? false : true,
+        (canbus.getName() == "rio") ? false : true,
         position,
         velocity,
         appliedVoltage,

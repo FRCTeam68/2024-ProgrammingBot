@@ -4,7 +4,6 @@ import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import frc.robot.subsystems.vision.VisionConstants.CameraInfo;
 import frc.robot.subsystems.vision.VisionConstants.ObjectObservationType;
-import frc.robot.subsystems.vision.VisionConstants.PipelineType;
 import java.util.function.Supplier;
 import org.littletonrobotics.junction.AutoLog;
 
@@ -50,13 +49,29 @@ public interface VisionIO {
       Boolean touchingRightEdge,
       ObjectObservationType type) {}
 
+  /**
+   * Initalize robot rotation supplier. This must be called once for every camera to get accurate
+   * pose estimation.
+   *
+   * @param rotationSupplier Robot rotation
+   */
   public default void initRotationSupplier(Supplier<Rotation2d> rotationSupplier) {}
 
   public default void updateInputs(VisionIOInputs inputs) {}
 
+  /**
+   * Get general information about the camera.
+   *
+   * @return Camera information
+   */
   public default CameraInfo getCameraInfo() {
     return CameraInfo.LL_2;
   }
 
-  public default void setPipline(PipelineType pipeline) {}
+  /**
+   * Set the vision pipeline the camera will use.
+   *
+   * @param pipelineIndex Index of the pipeline
+   */
+  public default void setPipline(Integer pipelineIndex) {}
 }

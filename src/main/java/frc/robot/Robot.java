@@ -1,17 +1,22 @@
 package frc.robot;
 
+import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.SignalLogger;
 import com.pathplanner.lib.commands.FollowPathCommand;
 import com.pathplanner.lib.commands.PathfindingCommand;
 import edu.wpi.first.hal.AllianceStationID;
+import edu.wpi.first.wpilibj.Alert;
+import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.IterativeRobotBase;
+import edu.wpi.first.wpilibj.PowerDistribution.ModuleType;
 import edu.wpi.first.wpilibj.RobotController;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.Watchdog;
 import edu.wpi.first.wpilibj.simulation.DriverStationSim;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
-import frc.robot.util.CANUtil;
+import frc.robot.util.CanbusReader;
 import frc.robot.util.LoggedTracer;
 import frc.robot.util.PhoenixUtil;
 import java.lang.reflect.Field;
@@ -19,6 +24,7 @@ import org.littletonrobotics.junction.AutoLogOutputManager;
 import org.littletonrobotics.junction.LogFileUtil;
 import org.littletonrobotics.junction.LoggedRobot;
 import org.littletonrobotics.junction.Logger;
+import org.littletonrobotics.junction.inputs.LoggedPowerDistribution;
 import org.littletonrobotics.junction.networktables.NT4Publisher;
 import org.littletonrobotics.junction.wpilog.WPILOGReader;
 import org.littletonrobotics.junction.wpilog.WPILOGWriter;
@@ -30,10 +36,24 @@ import org.littletonrobotics.junction.wpilog.WPILOGWriter;
  * project.
  */
 public class Robot extends LoggedRobot {
+  // TODO: consider additional low bat alarms. see MA
   private static final double loopOverrunWarningTimeout = 0.2; // seconds
+  private static final double canErrorTimeThreshold = 0.5; // Seconds to disable alert
+  private static final double rioErrorTimeThreshold = 0.5; // Seconds to disable alert
 
   private Command autonomousCommand;
   private RobotContainer robotContainer;
+  private final Timer canInitialErrorTimer = new Timer();
+  private final Timer canErrorTimer = new Timer();
+  private final Timer rioErrorTimer = new Timer();
+  private final CanbusReader rioReader = new CanbusReader(new CANBus("rio"));
+
+  private final Alert canErrorAlert =
+      new Alert("CAN errors detected, robot may not be controllable.", AlertType.kError);
+  private final Alert rioErrorAlert =
+      new Alert("CANivore errors detected, robot may not be controllable.", AlertType.kError);
+  private final Alert jitAlert =
+      new Alert("Please wait to enable, JITing in progress.", AlertType.kWarning);
 
   public Robot() {
     // Record metadata
@@ -64,6 +84,7 @@ public class Robot extends LoggedRobot {
         // Running on a real robot, log to a USB stick ("/U/logs")
         Logger.addDataReceiver(new WPILOGWriter());
         Logger.addDataReceiver(new NT4Publisher());
+        LoggedPowerDistribution.getInstance(35, ModuleType.kRev);
         break;
 
       case SIM:
@@ -103,11 +124,16 @@ public class Robot extends LoggedRobot {
       DriverStationSim.notifyNewData();
     }
 
-    // Instantiate our RobotContainer. This will perform all our button bindings.
-    robotContainer = new RobotContainer();
-
     // Configure brownout voltage
     RobotController.setBrownoutVoltage(6.0);
+
+    // Reset alert timers
+    canInitialErrorTimer.restart();
+    canErrorTimer.restart();
+    rioErrorTimer.restart();
+
+    // Instantiate our RobotContainer. This will perform all our button bindings.
+    robotContainer = new RobotContainer();
 
     // Warmup pathplanner libraries
     // This must be done after instantiate RobotContainer
@@ -123,24 +149,20 @@ public class Robot extends LoggedRobot {
 
     // Start AdvantageKit logger
     Logger.start();
-
-    // Set start time for logged tracer
-    LoggedTracer.reset();
-
-    // Threads.setCurrentThreadPriority(true, 1);
   }
 
   /** This function is called periodically during all modes. */
   @Override
   public void robotPeriodic() {
-    // Refresh all Phoenix signals
-    PhoenixUtil.refreshAll();
-    LoggedTracer.record("PhoenixRefresh");
-
     // Optionally switch the thread to high priority to improve loop
     // timing (see the template project documentation for details)
-    // TODO: Learn more about this
+    // TODO: Learn more about thead priority. MA has it always set to 1.
     // Threads.setCurrentThreadPriority(true, 99);
+
+    // Refresh all Phoenix signals
+    LoggedTracer.reset();
+    PhoenixUtil.refreshAll();
+    LoggedTracer.record("PhoenixRefresh");
 
     // Runs the Scheduler. This is responsible for polling buttons, adding
     // newly-scheduled commands, running already-scheduled commands, removing
@@ -153,12 +175,49 @@ public class Robot extends LoggedRobot {
     // Return to non-RT thread priority
     // Threads.setCurrentThreadPriority(false, 10);
 
-    // robotContainer.updateAlerts();
+    // Robot container periodic method
+    robotContainer.updateAlerts();
 
-    CANUtil.logStatus();
+    // Check CAN status
+    var canStatus = RobotController.getCANStatus();
+    if (canStatus.transmitErrorCount > 0 || canStatus.receiveErrorCount > 0) {
+      canErrorTimer.restart();
+    }
+    canErrorAlert.set(
+        !canErrorTimer.hasElapsed(canErrorTimeThreshold)
+            && !canInitialErrorTimer.hasElapsed(canErrorTimeThreshold));
+
+    // Log CANivore status
+    if (Constants.getMode() == Constants.Mode.REAL) {
+      var rioStatus = rioReader.getStatus();
+      if (rioStatus.isPresent()) {
+        Logger.recordOutput("CANivoreStatus/Status", rioStatus.get().Status.getName());
+        Logger.recordOutput("CANivoreStatus/Utilization", rioStatus.get().BusUtilization);
+        Logger.recordOutput("CANivoreStatus/OffCount", rioStatus.get().BusOffCount);
+        Logger.recordOutput("CANivoreStatus/TxFullCount", rioStatus.get().TxFullCount);
+        Logger.recordOutput("CANivoreStatus/ReceiveErrorCount", rioStatus.get().REC);
+        Logger.recordOutput("CANivoreStatus/TransmitErrorCount", rioStatus.get().TEC);
+        if (!rioStatus.get().Status.isOK()
+            || canStatus.transmitErrorCount > 0
+            || canStatus.receiveErrorCount > 0) {
+          rioErrorTimer.restart();
+        }
+      }
+      rioErrorAlert.set(
+          !rioErrorTimer.hasElapsed(rioErrorTimeThreshold)
+              && !canInitialErrorTimer.hasElapsed(canErrorTimeThreshold));
+    }
+
+    // JIT alert
+    jitAlert.set(isJITing());
 
     // Record cycle time
     LoggedTracer.record("RobotPeriodic");
+  }
+
+  /** Returns whether we should wait to enable because JIT optimizations are in progress. */
+  public static boolean isJITing() {
+    return Timer.getTimestamp() < 45.0;
   }
 
   /** This function is called once when the robot is disabled. */
@@ -172,9 +231,9 @@ public class Robot extends LoggedRobot {
   public void disabledPeriodic() {
     // Load PathPlanner paths from storage.
     // This will only load before autonomous starts.
-    // if (DriverStation.isAutonomous() || Constants.getMode() == Constants.Mode.SIM) {
-    //   robotContainer.loadAutonomousPath();
-    // }
+    if (DriverStation.isAutonomous() || Constants.getMode() == Constants.Mode.SIM) {
+      robotContainer.loadAutonomousPath();
+    }
   }
 
   /** This autonomous runs the autonomous command selected by your {@link RobotContainer} class. */

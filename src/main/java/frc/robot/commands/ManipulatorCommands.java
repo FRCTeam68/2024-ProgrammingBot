@@ -6,10 +6,11 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import frc.robot.subsystems.wrist.Wrist;
 
 public class ManipulatorCommands {
+  /** Experimentally find the wrist hard stop and then reset the current position. */
   public static Command wristZeroByAmps(Wrist wrist) {
     double rampTime = 1.0;
-    double maxVolts = 0.5;
-    double currentLimit = 4.0;
+    double maxVolts = 0.7;
+    double currentLimit = 5.0;
     Timer timer = new Timer();
 
     return Commands.sequence(

@@ -15,7 +15,7 @@ public class WristIOSim implements WristIO {
   private final DCMotorSim sim;
   private final PIDController controller = new PIDController(0.0, 0.0, 0.0);
 
-  private SlotConfigs[] slotConfigs = new SlotConfigs[3];
+  private SlotConfigs slotConfig = new SlotConfigs();
   private ControlMode mode = ControlMode.Neutral;
   private double appliedVoltage = 0.0;
 
@@ -59,9 +59,9 @@ public class WristIOSim implements WristIO {
   }
 
   @Override
-  public void runPosition(double position, int slot) {
+  public void runPosition(double position) {
     mode = ControlMode.Position;
-    controller.setPID(slotConfigs[slot].kP, slotConfigs[slot].kI, slotConfigs[slot].kD);
+    controller.setPID(slotConfig.kP, slotConfig.kI, slotConfig.kD);
     controller.setSetpoint(Units.degreesToRotations(position));
   }
 
@@ -76,10 +76,8 @@ public class WristIOSim implements WristIO {
   }
 
   @Override
-  public void setPID(SlotConfigs... newConfig) {
-    for (int i = 0; i < newConfig.length; i++) {
-      slotConfigs[i] = newConfig[i];
-    }
+  public void setPID(SlotConfigs newConfig) {
+    slotConfig = newConfig;
   }
 
   private void setInputVoltage(double volts) {

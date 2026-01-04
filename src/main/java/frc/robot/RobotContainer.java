@@ -1,5 +1,6 @@
 package frc.robot;
 
+import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.configs.SlotConfigs;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
@@ -40,6 +41,10 @@ import frc.robot.subsystems.shooter.Shooter;
 import frc.robot.subsystems.shooter.ShooterIO;
 import frc.robot.subsystems.shooter.ShooterIOReal;
 import frc.robot.subsystems.shooter.ShooterIOSim;
+import frc.robot.subsystems.vision.Vision;
+import frc.robot.subsystems.vision.VisionConstants.CameraInfo;
+import frc.robot.subsystems.vision.VisionIO;
+import frc.robot.subsystems.vision.VisionIOLimelight;
 import frc.robot.subsystems.wrist.Wrist;
 import frc.robot.subsystems.wrist.WristIO;
 import frc.robot.subsystems.wrist.WristIOReal;
@@ -58,16 +63,17 @@ import org.littletonrobotics.junction.networktables.LoggedDashboardChooser;
 public class RobotContainer {
   // Subsystems
   private Drive drive;
-  // private Vision vision;
+  private Vision vision;
   private Wrist wrist;
   private Shooter shooter;
   private RollerSystem intake;
   private RollerSystem feederLower;
   private RollerSystem feederUpper;
   private NoteSensor noteSensor;
-  //   private NoteVisualizer noteVisualizer;
+  // private NoteVisualizer noteVisualizer;
 
   // Controllers
+  // TODO: do we drop the controller part
   private final CommandXboxController driverController = new CommandXboxController(0);
   private final CommandPS4Controller operatorController = new CommandPS4Controller(1);
 
@@ -77,10 +83,10 @@ public class RobotContainer {
   private final Alert operatorControllerDisconnectedAlert =
       new Alert("Operator PS4 controller disconnected.", AlertType.kError);
   private final Alert noAutoSelectedAlert =
-      new Alert("No autonomous selected.", AlertType.kWarning);
+      new Alert("No autonomous routine selected.", AlertType.kWarning);
   private final Alert startingPoseAlert =
       new Alert(
-          "Current robot pose is too far from starting pose for selected auton. Possible causes include the incorrect auton is selected, the camera is not getting a clear view of an april tag, or the robot is in the wrong location.",
+          "Current robot pose does not match the starting pose for selected auton. Possible causes include the incorrect auton is selected, the camera is not getting a clear view of an april tag, or the robot is in the wrong location.",
           AlertType.kError);
 
   // Dashboard inputs
@@ -98,10 +104,12 @@ public class RobotContainer {
                 new ModuleIOReal(DriveConstants.moduleConfigs[2]),
                 new ModuleIOReal(DriveConstants.moduleConfigs[3]));
 
-        // vision = new Vision(drive::addVisionMeasurement, drive::getPose,
-        // drive::getFieldVelocity);
-        // new VisionIOLimelight(
-        //     CameraType.LL_2, VisionConstants.LL2Name, drive::getRotation));
+        vision =
+            new Vision(
+                drive::addVisionMeasurement,
+                drive::getPose,
+                drive::getFieldVelocity,
+                new VisionIOLimelight(CameraInfo.LL_4));
 
         wrist = new Wrist(drive::getPose, new WristIOReal());
 
@@ -115,7 +123,7 @@ public class RobotContainer {
                 "Intake",
                 new RollerSystemIOTalonFX(
                     20,
-                    "rio",
+                    new CANBus("rio"),
                     40,
                     InvertedValue.CounterClockwise_Positive,
                     NeutralModeValue.Coast,
@@ -126,16 +134,22 @@ public class RobotContainer {
                 "FeederLower",
                 new RollerSystemIOTalonFX(
                     35,
-                    "rio",
+                    new CANBus("rio"),
                     40,
                     InvertedValue.CounterClockwise_Positive,
                     NeutralModeValue.Coast,
                     1));
+
         feederUpper =
             new RollerSystem(
                 "FeederUpper",
                 new RollerSystemIOTalonFX(
-                    36, "rio", 40, InvertedValue.Clockwise_Positive, NeutralModeValue.Brake, 1));
+                    36,
+                    new CANBus("rio"),
+                    40,
+                    InvertedValue.Clockwise_Positive,
+                    NeutralModeValue.Brake,
+                    1));
       }
       case SIM -> {
         drive =
@@ -146,12 +160,12 @@ public class RobotContainer {
                 new ModuleIOSim(),
                 new ModuleIOSim());
 
-        // vision =
-        //     new Vision(
-        //         drive::addVisionMeasurement,
-        //         drive::getPose,
-        //         drive::getFieldVelocity,
-        //         new VisionIOLimelight(CameraInfo.LL_4));
+        vision =
+            new Vision(
+                drive::addVisionMeasurement,
+                drive::getPose,
+                drive::getFieldVelocity,
+                new VisionIOLimelight(CameraInfo.LL_4));
 
         wrist = new Wrist(drive::getPose, new WristIOSim());
 
@@ -163,6 +177,7 @@ public class RobotContainer {
         feederLower =
             new RollerSystem(
                 "FeederLower", new RollerSystemIOSim(DCMotor.getFalcon500Foc(1), 1, .074));
+
         feederUpper =
             new RollerSystem(
                 "FeederUpper", new RollerSystemIOSim(DCMotor.getFalcon500Foc(1), 1, .074));
@@ -176,12 +191,12 @@ public class RobotContainer {
                 new ModuleIO() {},
                 new ModuleIO() {});
 
-        // vision =
-        //     new Vision(
-        //         drive::addVisionMeasurement,
-        //         drive::getPose,
-        //         drive::getFieldVelocity,
-        //         new VisionIOLimelight(CameraInfo.LL_4));
+        vision =
+            new Vision(
+                drive::addVisionMeasurement,
+                drive::getPose,
+                drive::getFieldVelocity,
+                new VisionIO() {});
 
         wrist = new Wrist(drive::getPose, new WristIO() {});
 
@@ -195,34 +210,33 @@ public class RobotContainer {
       }
     }
 
+    noteSensor = new NoteSensor();
+
     intake.initPID(new SlotConfigs().withKP(5).withKD(0).withKS(0));
 
     feederLower.initPID(new SlotConfigs().withKP(10).withKD(0).withKS(0));
 
     feederUpper.initPID(new SlotConfigs().withKP(15).withKD(0).withKS(0));
 
-    noteSensor = new NoteSensor();
-
     // noteVisualizer = new NoteVisualizer(drive::getPose, wrist::getPosition,
     // noteSensor::isDetected);
-
-    // Configure dashboard
-    SmartDashboard.putData(
-        "MoveToStartingPose",
-        Commands.runOnce(() -> wrist.runPosition(wrist.getStartingElevation()), wrist));
-    SmartDashboard.putData("Wrist/FindLimit", ManipulatorCommands.wristZeroByAmps(wrist));
-
-    // Configure auto chooser
-    autonChooser = new LoggedDashboardChooser<>("Auto Chooser");
-    autonChooser.addDefaultOption("NONE", null);
-    autonChooser.addOption("Center", new AutonSequenceCenter());
-    autonChooser.addOption("Left", new AutonSequenceSide(0));
-    autonChooser.addOption("Right", new AutonSequenceSide(1));
 
     // Configure the button bindings
     configureButtonBindings();
 
-    SmartDashboard.putNumber("test/wristvolts", 0.0);
+    // Configure dashboard
+    SmartDashboard.putData(
+        "Move To Starting Pose",
+        Commands.runOnce(() -> wrist.runPosition(Wrist.getStartingElevation()), wrist)
+            .andThen(() -> stopSubsystems()));
+    SmartDashboard.putData("Wrist/Find Limit", ManipulatorCommands.wristZeroByAmps(wrist));
+
+    // Configure auton chooser
+    autonChooser = new LoggedDashboardChooser<>("Auton Chooser");
+    autonChooser.addDefaultOption("NONE", null);
+    autonChooser.addOption("Center", new AutonSequenceCenter());
+    autonChooser.addOption("Left", new AutonSequenceSide(0));
+    autonChooser.addOption("Right", new AutonSequenceSide(1));
   }
 
   /** Use this method to define button -> command mappings. */
@@ -235,10 +249,6 @@ public class RobotContainer {
             () -> -driverController.getLeftX(),
             () -> -driverController.getRightX()));
 
-    driverController
-        .x()
-        .onTrue(Commands.runOnce(() -> wrist.runPosition(wrist.getStartingElevation())));
-
     // driverController.povUp().onTrue(TestCommands.subsystem1(intake, feederLower, feederUpper));
     // driverController.povLeft().onTrue(TestCommands.subsystem2(intake, feederLower, feederUpper));
     // driverController.povRight().onTrue(TestCommands.subsystem3(intake, feederLower,
@@ -246,71 +256,19 @@ public class RobotContainer {
     // driverController.povDown().onTrue(TestCommands.subsystem4(intake, feederLower, feederUpper));
 
     driverController
-        .povUp()
-        .onTrue(
-            Commands.runOnce(
-                () -> wrist.runVolts(SmartDashboard.getNumber("test/wristvolts", 0.0)), wrist));
-    // driverController.povLeft().onTrue(TestCommands.subsystem2(intake, feederLower, feederUpper));
-    // driverController.povRight().onTrue(TestCommands.subsystem3(intake, feederLower,
-    // feederUpper));
-    driverController
         .povDown()
-        .onTrue(
-            Commands.runOnce(
-                () -> wrist.runVolts(-SmartDashboard.getNumber("test/wristvolts", 0.0)), wrist));
-
-    // driverController
-    //     .start()
-    //     .onTrue(
-    //         Commands.runOnce(
-    //             () ->
-    //                 drive.setPose(
-    //                     new Pose2d(
-    //                         drive.getPose().getTranslation(),
-    //                         AllianceFlipUtil.shouldFlip()
-    //                             ? new Rotation2d()
-    //                             : new Rotation2d(Math.PI)))));
-
-    // driverController
-    //     .leftTrigger()
-    //     .onTrue(
-    //         // Commands.parallel(
-    //         DriveCommands.joystickDriveAtTarget(
-    //             drive,
-    //             () -> -driverController.getLeftY(),
-    //             () -> -driverController.getLeftX(),
-    //             () -> new Translation2d(1, 1)));
-    // noteSensor.automaticSimulatedNote(3))
-    // .onlyIf(
-    //     () ->
-    //         Constants.getMode() == Mode.SIM && noteSensor.getAutomaticNoteSim().get()));
-    // driverController
-    //     .rightTrigger()
-    //     .onTrue(Commands.runOnce(() -> shooter.runVelocity(50, 0, 100, 0)));
-    // driverController.rightBumper().onTrue(Commands.runOnce(() -> shooter.runVolts(6, 2)));
-    // driverController
-    //     .leftTrigger()
-    //     .onTrue(
-    //         // Commands.parallel(
-    //         DriveCommands.joystickDriveAtTarget(
-    //             drive,
-    //             () -> -driverController.getLeftY(),
-    //             () -> -driverController.getLeftX(),
-    //             () -> new Translation2d(1, 1)));
-    // // noteSensor.automaticSimulatedNote(3))
-    // // .onlyIf(
-    // //     () ->
-    // //         Constants.getMode() == Mode.SIM && noteSensor.getAutomaticNoteSim().get()));
-    // driverController
-    //     .rightTrigger()
-    //     .onTrue(Commands.runOnce(() -> shooter.runVelocity(50, 0, 100, 0)));
-    // driverController.rightBumper().onTrue(Commands.runOnce(() -> shooter.runVolts(6, 2)));
+        .whileTrue(
+            Commands.deadline(
+                IntakeCommands.intake(wrist, intake, feederLower, feederUpper, noteSensor),
+                DriveCommands.joystickDriveAtAngle(
+                    drive,
+                    () -> -driverController.getLeftY(),
+                    () -> -driverController.getLeftX(),
+                    () -> vision.getTargetX(0))));
 
     driverController
         .a()
         .onTrue(ShootCommands.setStaticShotConfig(shooter, wrist, ShooterConstants.amp));
-
-    driverController.rightTrigger().whileTrue(ShootCommands.shootManual(feederUpper));
 
     driverController
         .leftTrigger()
@@ -319,6 +277,8 @@ public class RobotContainer {
     driverController
         .leftBumper()
         .whileTrue(IntakeCommands.outtake(wrist, intake, feederLower, feederUpper));
+
+    driverController.rightTrigger().whileTrue(ShootCommands.shootManual(feederUpper));
 
     driverController
         .back()
@@ -330,7 +290,8 @@ public class RobotContainer {
                                 drive.getPose().getTranslation(),
                                 AllianceFlipUtil.apply(new Rotation2d()))))
                 .ignoringDisable(true));
-    driverController.start().onTrue(Commands.runOnce(() -> stopSubsystems()));
+
+    driverController.start().onTrue(Commands.runOnce(() -> stopSubsystems()).ignoringDisable(true));
   }
 
   /**
@@ -348,7 +309,7 @@ public class RobotContainer {
     AutonUtil.loadPaths(autonChooser.get() != null ? autonChooser.get().getPathNames() : null);
   }
 
-  /** Stops all subsystems and cancels any scheduled commands. */
+  /** Stops all subsystems and cancels all scheduled commands. */
   public void stopSubsystems() {
     CommandScheduler.getInstance().cancelAll();
     drive.stop();

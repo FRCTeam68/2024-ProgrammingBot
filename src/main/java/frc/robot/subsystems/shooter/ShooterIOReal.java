@@ -3,6 +3,7 @@ package frc.robot.subsystems.shooter;
 import static frc.robot.util.PhoenixUtil.tryUntilOk;
 
 import com.ctre.phoenix6.BaseStatusSignal;
+import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.configs.MotionMagicConfigs;
 import com.ctre.phoenix6.configs.Slot0Configs;
@@ -49,7 +50,7 @@ public class ShooterIOReal implements ShooterIO {
   private final NeutralOut neutralOut = new NeutralOut();
 
   public ShooterIOReal(int id, InvertedValue invertedValue) {
-    talon = new TalonFX(id, "rio");
+    talon = new TalonFX(id, new CANBus("rio"));
 
     // Configure Motor
     config.MotorOutput.Inverted = invertedValue;

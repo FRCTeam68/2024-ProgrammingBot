@@ -70,7 +70,11 @@ public class Vision extends SubsystemBase {
    * @param cameraIndex The index of the camera to use.
    */
   public Rotation2d getTargetX(int cameraIndex) {
-    return inputs[cameraIndex].latestTargetObservation.tx();
+    return inputs[cameraIndex]
+        .latestTargetObservation
+        .tx()
+        .rotateBy(poseSupplier.get().getRotation())
+        .rotateBy(cameraInfo[cameraIndex].pose.getRotation().toRotation2d());
   }
 
   public Pose2d getTagPose(int cameraIndex) {

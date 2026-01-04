@@ -12,7 +12,6 @@ import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.RobotController;
 import frc.robot.subsystems.vision.VisionConstants.CameraInfo;
 import frc.robot.subsystems.vision.VisionConstants.ObjectObservationType;
-import frc.robot.subsystems.vision.VisionConstants.PipelineType;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -33,13 +32,11 @@ public class VisionIOLimelight implements VisionIO {
   private final DoubleArraySubscriber objectSubscriber;
 
   private Supplier<Rotation2d> rotationSupplier = () -> new Rotation2d();
-  private int pipelineIndex = -1;
 
   /**
-   * Creates a new VisionIOLimelight.
+   * Creates a new Limelight camera.
    *
-   * @param name The configured name of the Limelight.
-   * @param rotationSupplier Supplier for the current estimated rotation, used for MegaTag 2.
+   * @param cameraInfo Camera information
    */
   public VisionIOLimelight(CameraInfo cameraInfo) {
     this.cameraInfo = cameraInfo;
@@ -79,15 +76,6 @@ public class VisionIOLimelight implements VisionIO {
     // Update orientation for MegaTag 2
     orientationPublisher.accept(
         new double[] {rotationSupplier.get().getDegrees(), 0.0, 0.0, 0.0, 0.0, 0.0});
-
-    // Update pipeline
-    if (pipelineIndex != -1) {
-      if (pipelineIndex != inputs.pipelineIndex) {
-        pipelinePublisher.accept(pipelineIndex);
-      } else {
-        pipelineIndex = -1;
-      }
-    }
 
     // Increases network traffic but recommended by Limelight
     NetworkTableInstance.getDefault().flush();
@@ -210,8 +198,8 @@ public class VisionIOLimelight implements VisionIO {
   }
 
   @Override
-  public void setPipline(PipelineType pipeline) {
-    pipelineIndex = pipeline.index;
+  public void setPipline(Integer pipelineIndex) {
+    pipelinePublisher.accept(pipelineIndex);
   }
 
   /** Parses the 3D pose from a Limelight botpose array. */

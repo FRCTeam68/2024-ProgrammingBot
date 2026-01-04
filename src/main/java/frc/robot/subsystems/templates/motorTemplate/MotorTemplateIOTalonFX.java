@@ -3,6 +3,7 @@ package frc.robot.subsystems.templates.motorTemplate;
 import static frc.robot.util.PhoenixUtil.tryUntilOk;
 
 import com.ctre.phoenix6.BaseStatusSignal;
+import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.configs.MotionMagicConfigs;
 import com.ctre.phoenix6.configs.Slot0Configs;
@@ -60,7 +61,7 @@ public class MotorTemplateIOTalonFX implements MotorTemplateIO {
 
   public MotorTemplateIOTalonFX() {
     // TEMPLATE: Set CAN id and bus
-    talon = new TalonFX(0, "rio");
+    talon = new TalonFX(0, new CANBus("rio"));
 
     // Configure Motor
     // TEMPLATE: Set configuration

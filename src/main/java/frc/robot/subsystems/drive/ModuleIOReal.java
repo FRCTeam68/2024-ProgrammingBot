@@ -176,7 +176,7 @@ public class ModuleIOReal implements ModuleIO {
     BaseStatusSignal.setUpdateFrequencyForAll(4.0, driveTempCelsius, turnTempCelsius);
     tryUntilOk(5, () -> ParentDevice.optimizeBusUtilizationForAll(driveTalon, turnTalon, cancoder));
     PhoenixUtil.registerSignals(
-        (DriveConstants.canbus == "rio") ? false : true,
+        (DriveConstants.canbus.getName() == "rio") ? false : true,
         drivePosition,
         driveVelocity,
         driveAppliedVolts,

@@ -10,7 +10,7 @@ import frc.robot.subsystems.wrist.Wrist;
 import java.util.Set;
 
 public class IntakeCommands {
-  /** Intake note from the ground. This will only stop when a note is seen by the sensor. */
+  /** Intake note from the ground. This will only end when a note is seen by the sensor. */
   public static Command intake(
       Wrist wrist,
       RollerSystem intake,
@@ -39,11 +39,11 @@ public class IntakeCommands {
           if (!RobotState.haveNote) {
             command =
                 Commands.sequence(
-                        Commands.runOnce(() -> wrist.runPosition(wrist.getIntake().get())),
+                        Commands.runOnce(() -> wrist.runPosition(Wrist.getIntake().get())),
                         Commands.waitUntil(() -> wrist.atSetpoint()),
                         Commands.runOnce(() -> intake.runVolts(7)),
                         Commands.runOnce(() -> feederLower.runVolts(7)),
-                        Commands.runOnce(() -> feederUpper.runVolts(1)),
+                        Commands.runOnce(() -> feederUpper.runVolts(0.6)),
                         Commands.waitUntil(() -> noteSensor.isDetected()),
                         Commands.runOnce(() -> RobotState.haveNote = true))
                     .finallyDo(
@@ -63,18 +63,9 @@ public class IntakeCommands {
   /** Set haveNote to false and eject any note out the intake. */
   public static Command outtake(
       Wrist wrist, RollerSystem intake, RollerSystem feederLower, RollerSystem feederUpper) {
-    // set haveNote to false
-    // run wrist to position
-    // wait until wrist is at position
-    // run rollers
-    // when interupted stop motors
-
-    // does this just work when called while true
-    // need some way to keep the command from ending
-    // does the idle command work how I think?
-
     return Commands.sequence(
-            Commands.runOnce(() -> wrist.runPosition(wrist.getIntake().get())),
+            Commands.runOnce(() -> RobotState.haveNote = false),
+            Commands.runOnce(() -> wrist.runPosition(Wrist.getOuttake().get())),
             Commands.waitUntil(() -> wrist.atSetpoint()),
             Commands.runOnce(
                 () -> {
@@ -83,7 +74,6 @@ public class IntakeCommands {
                   feederUpper.runVolts(-7);
                 }),
             Commands.idle())
-        .beforeStarting(() -> RobotState.haveNote = false)
         .finallyDo(
             () -> {
               intake.stop();

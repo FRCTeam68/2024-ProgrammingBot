@@ -3,6 +3,7 @@ package frc.robot.subsystems.templates.lights;
 import static frc.robot.util.PhoenixUtil.tryUntilOk;
 
 import com.ctre.phoenix6.BaseStatusSignal;
+import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.configs.CANdleConfiguration;
 import com.ctre.phoenix6.controls.ControlRequest;
@@ -20,7 +21,7 @@ import frc.robot.util.PhoenixUtil;
 
 public class LightsIOCANdle implements LightsIO {
   // Hardware
-  private final CANdle candle = new CANdle(60, "rio");
+  private final CANdle candle = new CANdle(60, new CANBus("rio"));
 
   // Config
   private final CANdleConfiguration config = new CANdleConfiguration();

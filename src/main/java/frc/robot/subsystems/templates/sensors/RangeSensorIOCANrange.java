@@ -3,6 +3,7 @@ package frc.robot.subsystems.templates.sensors;
 import static frc.robot.util.PhoenixUtil.tryUntilOk;
 
 import com.ctre.phoenix6.BaseStatusSignal;
+import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.configs.CANrangeConfiguration;
 import com.ctre.phoenix6.hardware.CANrange;
@@ -16,7 +17,7 @@ public class RangeSensorIOCANrange implements RangeSensorIO {
   private final StatusSignal<Boolean> detected;
   private final StatusSignal<Distance> distance;
 
-  public RangeSensorIOCANrange(Integer id, String canbus, CANrangeConfiguration config) {
+  public RangeSensorIOCANrange(Integer id, CANBus canbus, CANrangeConfiguration config) {
     canrange = new CANrange(id, canbus);
 
     tryUntilOk(5, () -> canrange.getConfigurator().apply(config));
@@ -29,7 +30,7 @@ public class RangeSensorIOCANrange implements RangeSensorIO {
 
     tryUntilOk(5, () -> BaseStatusSignal.setUpdateFrequencyForAll(50.0, detected, distance));
     tryUntilOk(5, () -> ParentDevice.optimizeBusUtilizationForAll(canrange));
-    PhoenixUtil.registerSignals((canbus == "rio") ? false : true, detected, distance);
+    PhoenixUtil.registerSignals((canbus.getName() == "rio") ? false : true, detected, distance);
   }
 
   @Override

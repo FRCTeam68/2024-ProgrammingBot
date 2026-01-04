@@ -18,11 +18,15 @@ public interface MotorTemplateIO {
 
   default void updateInputs(MotorTemplateIOInputs inputs) {}
 
-  /** Run motor at volts */
+  /**
+   * Run motor at volts.
+   *
+   * @param volts Voltage
+   */
   default void runVolts(double volts) {}
 
   /**
-   * Run motor at velocity
+   * Run motor at velocity.
    *
    * @param velocity Velocity in mechanism rotations per second
    * @param slot
@@ -30,7 +34,7 @@ public interface MotorTemplateIO {
   default void runVelocity(double velocity, int slot) {}
 
   /**
-   * Run motor to position
+   * Run motor to position.
    *
    * @param position Position in mechanism rotations
    * @param slot
@@ -41,14 +45,14 @@ public interface MotorTemplateIO {
   default void stop() {}
 
   /**
-   * Set the current mechanism position
+   * Set the current mechanism position.
    *
    * @param rotations Position in mechanism rotations
    */
   default void setPosition(double rotations) {}
 
   /**
-   * Set slot configs
+   * Set PID slot configs.
    *
    * <p>Gravity type and static feedforward sign are ignored and use static values instead.
    *

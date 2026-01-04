@@ -1,6 +1,5 @@
 package frc.robot.subsystems.wrist;
 
-import com.ctre.phoenix6.configs.MotionMagicConfigs;
 import com.ctre.phoenix6.configs.SlotConfigs;
 import org.littletonrobotics.junction.AutoLog;
 
@@ -27,37 +26,38 @@ public interface WristIO {
 
   default void updateInputs(WristIOInputs inputs) {}
 
-  /** Run motor at volts */
+  /**
+   * Run mechanism at volts.
+   *
+   * @param volts Voltage
+   */
   default void runVolts(double volts) {}
 
-  /** Run mechanism at position */
-  default void runPosition(double position, int slot) {}
+  /**
+   * Run mechanism to elevation.
+   *
+   * @param elevation Elevation in degrees
+   */
+  default void runPosition(double elevation) {}
 
-  /** Stop motor */
+  /** Stop mechanism */
   default void stop() {}
 
   /**
-   * Set the current mechanism elevation
+   * Set current mechanism elevation.
    *
-   * @param elevation current elevation
+   * @param elevation Elevation in degrees
    */
   default void setPosition(double elevation) {}
 
   /**
-   * Set slot configs
+   * Set PID gains.
    *
    * <p>Gravity type and static feedforward sign are ignored and use static values instead.
    *
-   * <ul>
-   *   <li><b>Available slots:</b> [0,2]
-   * </ul>
-   *
    * @param newConfig PID gains
    */
-  public default void setPID(SlotConfigs... newConfig) {}
-
-  /** Set motion magic velocity, acceleration and jerk. */
-  public default void setMotionMagic(MotionMagicConfigs newconfig) {}
+  public default void setPID(SlotConfigs newConfig) {}
 
   /** Enables the software motion limits */
   public default void setSoftwareLimitsEnabled(boolean enabled) {}

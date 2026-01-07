@@ -121,6 +121,8 @@ public class Robot extends LoggedRobot {
     // Configure DriverStation for sim
     if (Constants.getMode() == frc.robot.Constants.Mode.SIM) {
       DriverStationSim.setAllianceStationId(AllianceStationID.Blue1);
+      DriverStationSim.setAutonomous(false);
+      DriverStationSim.setEnabled(true);
       DriverStationSim.notifyNewData();
     }
 

@@ -89,9 +89,9 @@ public class Drive extends SubsystemBase {
         this::setPose,
         this::getChassisSpeeds,
         this::runVelocity,
-        new PPHolonomicDriveController(DriveConstants.translationPID, DriveConstants.rotationPID),
+        new PPHolonomicDriveController(DriveConstants.linearPID, DriveConstants.angularPID),
         DriveConstants.ppConfig,
-        () -> AllianceFlipUtil.shouldFlip(),
+        AllianceFlipUtil::shouldFlip,
         this);
     Pathfinding.setPathfinder(new LocalADStarAK());
     PathPlannerLogging.setLogActivePathCallback(

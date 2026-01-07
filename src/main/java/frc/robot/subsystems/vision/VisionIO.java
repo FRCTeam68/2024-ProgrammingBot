@@ -43,10 +43,10 @@ public interface VisionIO {
       double tyCenter,
       double width,
       double height,
-      Boolean touchingBottomEdge,
-      Boolean touchingTopEdge,
-      Boolean touchingLeftEdge,
-      Boolean touchingRightEdge,
+      boolean touchingBottomEdge,
+      boolean touchingTopEdge,
+      boolean touchingLeftEdge,
+      boolean touchingRightEdge,
       ObjectObservationType type) {}
 
   /**

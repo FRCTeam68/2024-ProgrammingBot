@@ -1,7 +1,5 @@
 package frc.robot.commands;
 
-import static edu.wpi.first.units.Units.RadiansPerSecond;
-
 import com.therekrab.autopilot.APTarget;
 import com.therekrab.autopilot.Autopilot;
 import com.therekrab.autopilot.Autopilot.APResult;
@@ -15,11 +13,9 @@ import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.math.util.Units;
-import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
-import frc.robot.FieldConstants;
 import frc.robot.subsystems.drive.Drive;
 import frc.robot.subsystems.drive.DriveConstants;
 import frc.robot.util.AllianceFlipUtil;
@@ -33,17 +29,10 @@ import org.littletonrobotics.junction.Logger;
 
 public class DriveCommands {
   private static final double DEADBAND = 0.1;
-  private static final double ANGLE_KP = 5.0;
-  private static final double ANGLE_KD = 0.4;
-  private static final double ANGLE_MAX_VELOCITY = 8.0;
-  private static final double ANGLE_MAX_ACCELERATION = 20.0;
   private static final double FF_START_DELAY = 2.0; // Secs
   private static final double FF_RAMP_RATE = 0.1; // Volts/Sec
   private static final double WHEEL_RADIUS_MAX_VELOCITY = 0.25; // Rad/Sec
   private static final double WHEEL_RADIUS_RAMP_RATE = 0.05; // Rad/Sec^2
-  private static DoubleSupplier elevatorHeight = null; // Meters
-
-  private DriveCommands() {}
 
   private static Translation2d getLinearVelocityFromJoysticks(double x, double y) {
     // Apply deadband
@@ -57,18 +46,6 @@ public class DriveCommands {
     return new Pose2d(new Translation2d(), linearDirection)
         .transformBy(new Transform2d(linearMagnitude, 0.0, new Rotation2d()))
         .getTranslation();
-  }
-
-  private static double getAdjustedMaxLinearVelocity() {
-    if (elevatorHeight == null || elevatorHeight.getAsDouble() < 0.5) {
-      return DriveConstants.maxLinearVelocity;
-    } else {
-      return DriveConstants.maxLinearVelocity - elevatorHeight.getAsDouble();
-    }
-  }
-
-  public static void configureMaxVelocitySuppliers(DoubleSupplier elevatorHeightSupplier) {
-    elevatorHeight = elevatorHeightSupplier;
   }
 
   /**
@@ -92,14 +69,14 @@ public class DriveCommands {
           omega = Math.copySign(omega * omega, omega);
 
           // Convert to field relative speeds & send command
-          ChassisSpeeds speeds =
+          ChassisSpeeds fieldRelativeSpeeds =
               new ChassisSpeeds(
                   linearVelocity.getX() * DriveConstants.maxLinearVelocity,
                   linearVelocity.getY() * DriveConstants.maxLinearVelocity,
                   omega * DriveConstants.maxAngularVelocity);
           drive.runVelocity(
               ChassisSpeeds.fromFieldRelativeSpeeds(
-                  speeds,
+                  fieldRelativeSpeeds,
                   AllianceFlipUtil.shouldFlip()
                       ? drive.getRotation().rotateBy(Rotation2d.kPi)
                       : drive.getRotation()));
@@ -109,8 +86,8 @@ public class DriveCommands {
 
   /**
    * Field relative drive command using joystick for linear control and PID for angular control.
-   * Possible use cases include snapping to an angle, aiming at a vision target, or controlling
-   * absolute rotation with a joystick.
+   * Possible use cases include snapping to an angle or controlling absolute rotation with a
+   * joystick.
    */
   public static Command joystickDriveAtAngle(
       Drive drive,
@@ -118,14 +95,14 @@ public class DriveCommands {
       DoubleSupplier ySupplier,
       Supplier<Rotation2d> rotationSupplier) {
 
-    // Create PID controller
+    // Configure PID controller
     ProfiledPIDController angleController =
         new ProfiledPIDController(
-            ANGLE_KP,
-            0.0,
-            ANGLE_KD,
-            new TrapezoidProfile.Constraints(ANGLE_MAX_VELOCITY, ANGLE_MAX_ACCELERATION));
-    angleController.enableContinuousInput(-Math.PI, Math.PI);
+            DriveConstants.angularPID.kP,
+            DriveConstants.angularPID.kI,
+            DriveConstants.angularPID.kD,
+            new TrapezoidProfile.Constraints(
+                DriveConstants.maxAngularVelocity, DriveConstants.maxAngularAcceleration));
 
     // Construct command
     return Commands.run(
@@ -140,14 +117,14 @@ public class DriveCommands {
                       drive.getRotation().getRadians(), rotationSupplier.get().getRadians());
 
               // Convert to field relative speeds & send command
-              ChassisSpeeds speeds =
+              ChassisSpeeds fieldRelativeSpeeds =
                   new ChassisSpeeds(
                       linearVelocity.getX() * DriveConstants.maxLinearVelocity,
                       linearVelocity.getY() * DriveConstants.maxLinearVelocity,
                       omega);
               drive.runVelocity(
                   ChassisSpeeds.fromFieldRelativeSpeeds(
-                      speeds,
+                      fieldRelativeSpeeds,
                       AllianceFlipUtil.shouldFlip()
                           ? drive.getRotation().rotateBy(Rotation2d.kPi)
                           : drive.getRotation()));
@@ -155,7 +132,12 @@ public class DriveCommands {
             drive)
 
         // Reset PID controller when command starts
-        .beforeStarting(() -> angleController.reset(drive.getRotation().getRadians()));
+        .beforeStarting(
+            () -> {
+              angleController.enableContinuousInput(-Math.PI, Math.PI);
+              angleController.reset(
+                  drive.getRotation().getRadians(), drive.getChassisSpeeds().omegaRadiansPerSecond);
+            });
   }
 
   /**
@@ -169,14 +151,14 @@ public class DriveCommands {
       DoubleSupplier ySupplier,
       Supplier<Translation2d> targetSupplier) {
 
-    // Create PID controller
+    // Configure PID controller
     ProfiledPIDController angleController =
         new ProfiledPIDController(
-            ANGLE_KP,
-            0.0,
-            ANGLE_KD,
-            new TrapezoidProfile.Constraints(ANGLE_MAX_VELOCITY, ANGLE_MAX_ACCELERATION));
-    angleController.enableContinuousInput(-Math.PI, Math.PI);
+            DriveConstants.angularPID.kP,
+            DriveConstants.angularPID.kI,
+            DriveConstants.angularPID.kD,
+            new TrapezoidProfile.Constraints(
+                DriveConstants.maxAngularVelocity, DriveConstants.maxAngularAcceleration));
 
     // Construct command
     return Commands.run(
@@ -196,14 +178,14 @@ public class DriveCommands {
                           .getRadians());
 
               // Convert to field relative speeds & send command
-              ChassisSpeeds speeds =
+              ChassisSpeeds fieldRelativeSpeeds =
                   new ChassisSpeeds(
                       linearVelocity.getX() * DriveConstants.maxLinearVelocity,
                       linearVelocity.getY() * DriveConstants.maxLinearVelocity,
                       omega);
               drive.runVelocity(
                   ChassisSpeeds.fromFieldRelativeSpeeds(
-                      speeds,
+                      fieldRelativeSpeeds,
                       AllianceFlipUtil.shouldFlip()
                           ? drive.getRotation().rotateBy(Rotation2d.kPi)
                           : drive.getRotation()));
@@ -211,64 +193,117 @@ public class DriveCommands {
             drive)
 
         // Reset PID controller when command starts
-        .beforeStarting(() -> angleController.reset(drive.getRotation().getRadians()));
+        .beforeStarting(
+            () -> {
+              angleController.enableContinuousInput(-Math.PI, Math.PI);
+              angleController.reset(
+                  drive.getRotation().getRadians(), drive.getChassisSpeeds().omegaRadiansPerSecond);
+            });
   }
 
-  public static Command AutopilotDriveToPose(
-      Drive drive, Supplier<Pose2d> targetPose, Supplier<Rotation2d> entryAngle) {
-    Autopilot autopilot = new Autopilot(DriveConstants.apConfig);
+  /**
+   * Drive to a specified pose using autopilot. This command will run until the target pose it met.
+   *
+   * <ul>
+   *   <li><b> APTarget controls:</b>
+   *       <ul>
+   *         <li><b> Reference </b> Target pose
+   *         <li><b> EntryAngle </b> The entry angle of the robot
+   *         <li><b> Velocity </b> The desired end velocity when the robot approaches the target
+   *             (m/s)
+   *             <ul>
+   *               <li>If the target end velocity is greater then 0, <code> apConfigDynamic </code>
+   *                   is used, otherwise <code> apConfigStatic </code> is used.
+   *             </ul>
+   *         <li><b> RotationRadius </b> The distance from the target pose that rotation goals are
+   *             respected (meters)
+   *             <ul>
+   *               <li>By default, rotation goals are always respected. Adjusting this radius
+   *                   prevents Autopilot from reorienting the robot until the robot is within the
+   *                   specified radius of the target.
+   *             </ul>
+   *       </ul>
+   * </ul>
+   */
+  public static Command autopilotDriveToPose(Drive drive, Supplier<APTarget> targetSupplier) {
+    // Configure Autopilot controller
+    Autopilot autopilot;
+    if (targetSupplier.get().getVelocity() == 0.0) {
+      autopilot = new Autopilot(DriveConstants.apConfigStatic);
+    } else {
+      autopilot = new Autopilot(DriveConstants.apConfigDynamic);
+    }
+
+    // Configure PID controller
+    ProfiledPIDController angleController =
+        new ProfiledPIDController(
+            DriveConstants.angularPID.kP,
+            DriveConstants.angularPID.kI,
+            DriveConstants.angularPID.kD,
+            new TrapezoidProfile.Constraints(
+                DriveConstants.maxAngularVelocity, DriveConstants.maxAngularAcceleration));
+
+    List<Pose2d> trajectory = new LinkedList<>();
 
     return Commands.run(
             () -> {
-              APTarget target;
-              if (entryAngle == null) {
-                target = new APTarget(targetPose.get()).withoutEntryAngle();
-              } else {
-                target = new APTarget(targetPose.get()).withEntryAngle(entryAngle.get());
-              }
+              // Logging
+              trajectory.add(drive.getPose());
+              Logger.recordOutput(
+                  "Autopilot/Trajectory", trajectory.toArray(new Pose2d[trajectory.size()]));
+              Logger.recordOutput(
+                  "Autopilot/Target", new Pose2d[] {targetSupplier.get().getReference()});
 
-              Logger.recordOutput("Autopilot/target", target.getReference());
-
+              // Calculate Autopilot result
               APResult result =
                   autopilot.calculate(
-                      drive.getPose(),
-                      ChassisSpeeds.fromFieldRelativeSpeeds(
-                          drive.getFieldVelocity(), drive.getRotation()),
-                      target);
+                      drive.getPose(), drive.getChassisSpeeds(), targetSupplier.get());
 
-              Logger.recordOutput("Autopilot/vx", result.vx());
-              Logger.recordOutput("Autopilot/vy", result.vy());
+              // Calculate angular speed
+              double omega =
+                  angleController.calculate(
+                      drive.getRotation().getRadians(), result.targetAngle().getRadians());
 
+              // Convert to field relative speeds & send command
+              ChassisSpeeds fieldRelativeSpeeds =
+                  new ChassisSpeeds(
+                      result.vx().baseUnitMagnitude(), result.vy().baseUnitMagnitude(), omega);
               drive.runVelocity(
-                  ChassisSpeeds.fromFieldRelativeSpeeds(
-                      new ChassisSpeeds(
-                          result.vx(),
-                          result.vy(),
-                          AngularVelocity.ofRelativeUnits(
-                              result.targetAngle().getRadians(), RadiansPerSecond)),
-                      AllianceFlipUtil.shouldFlip()
-                          ? drive.getRotation().rotateBy(Rotation2d.kPi)
-                          : drive.getRotation()));
+                  ChassisSpeeds.fromFieldRelativeSpeeds(fieldRelativeSpeeds, drive.getRotation()));
             },
             drive)
-        .beforeStarting(() -> Logger.recordOutput("Autopilot/State", "Moving To Target"))
-        .until(() -> autopilot.atTarget(drive.getPose(), new APTarget(targetPose.get())))
+        .repeatedly()
+
+        // Before starting, configure angle controller, clear trajectory list, and logging
+        .beforeStarting(
+            () -> {
+              angleController.enableContinuousInput(-Math.PI, Math.PI);
+              angleController.reset(
+                  drive.getRotation().getRadians(), drive.getChassisSpeeds().omegaRadiansPerSecond);
+
+              trajectory.clear();
+
+              Logger.recordOutput("Autopilot/State", "Moving to Target");
+            })
+
+        // Run until robot is within error of target pose
+        .until(() -> autopilot.atTarget(drive.getPose(), targetSupplier.get()))
+
+        // When at target or interupted, if end velocity is non-zero then stop the drive motors
+        // Also reset logged values
         .finallyDo(
             () -> {
-              if (autopilot.atTarget(drive.getPose(), new APTarget(targetPose.get()))) {
+              if (targetSupplier.get().getVelocity() == 0.0) drive.stop();
+
+              Logger.recordOutput("Autopilot/Trajectory", new Pose2d[] {});
+              Logger.recordOutput("Autopilot/Target", new Pose2d[] {});
+
+              if (autopilot.atTarget(drive.getPose(), targetSupplier.get())) {
                 Logger.recordOutput("Autopilot/State", "At Target");
               } else {
                 Logger.recordOutput("Autopilot/State", "Interrupted");
               }
-            })
-        .repeatedly();
-  }
-
-  public static Command joystickDriveAtSpeaker(
-      Drive drive, DoubleSupplier xSupplier, DoubleSupplier ySupplier) {
-    Translation2d speaker =
-        AllianceFlipUtil.shouldFlip() ? FieldConstants.redSpeaker : FieldConstants.blueSpeaker;
-    return Commands.run(() -> {});
+            });
   }
 
   /**

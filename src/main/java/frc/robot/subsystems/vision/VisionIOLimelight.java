@@ -182,7 +182,8 @@ public class VisionIOLimelight implements VisionIO {
               (rawSample[i + 6] >= cameraInfo.objectDetectionEdges[3]),
 
               // Observation id
-              ObjectObservationType.values()[(int) i]));
+              ObjectObservationType.CORAL));
+      // ObjectObservationType.values()[(int) i]));
     }
 
     // Save object observations to inputs object

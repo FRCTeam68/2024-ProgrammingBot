@@ -4,6 +4,9 @@ import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import frc.robot.subsystems.wrist.Wrist;
+import frc.robot.util.ElasticUtil;
+import frc.robot.util.ElasticUtil.Notification;
+import frc.robot.util.ElasticUtil.NotificationLevel;
 
 public class ManipulatorCommands {
   /** Experimentally find the wrist hard stop and then reset the current position. */
@@ -38,6 +41,8 @@ public class ManipulatorCommands {
             () -> {
               wrist.stop();
               wrist.setSoftwareLimitsEnabled(true);
+              ElasticUtil.sendNotification(
+                  new Notification(NotificationLevel.INFO, "Wrist Zeroed", ""));
             });
   }
 }

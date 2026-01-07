@@ -36,8 +36,8 @@ public class Vision extends SubsystemBase {
   private final Alert[] disconnectedAlerts;
 
   // TODO: how do we handle empty targets. null could cause crashes
-  @Getter private Pose3d coralTarget = null;
-  @Getter private Pose3d algaeTarget = null;
+  @Getter private Rotation2d coralTarget = null;
+  @Getter private Rotation2d algaeTarget = null;
 
   public Vision(
       VisionConsumer consumer,
@@ -70,11 +70,7 @@ public class Vision extends SubsystemBase {
    * @param cameraIndex The index of the camera to use.
    */
   public Rotation2d getTargetX(int cameraIndex) {
-    return inputs[cameraIndex]
-        .latestTargetObservation
-        .tx()
-        .rotateBy(poseSupplier.get().getRotation())
-        .rotateBy(cameraInfo[cameraIndex].pose.getRotation().toRotation2d());
+    return poseSupplier.get().getRotation().minus(inputs[cameraIndex].latestTargetObservation.tx());
   }
 
   public Pose2d getTagPose(int cameraIndex) {
@@ -240,11 +236,12 @@ public class Vision extends SubsystemBase {
 
       // Loop over object observations
       for (var observation : inputs[cameraIndex].objectObservations) {
-        if (observation.type() == ObjectObservationType.CORAL) {
-          double distance =
-              coralDistanceEquation.applyAsDouble(observation.height(), observation.width());
-          // TODO: can this be made more simple
-          // objectPoseCoral.add(poseSupplier.get().t);
+        switch (observation.type()) {
+          case CORAL:
+            break;
+
+          case ALGAE:
+            break;
         }
       }
 
@@ -278,10 +275,10 @@ public class Vision extends SubsystemBase {
         allObjectPosesAlgae.toArray(new Pose3d[allObjectPosesAlgae.size()]));
     Logger.recordOutput(
         "Vision/Summary/CoralTargetPose",
-        (coralTarget != null) ? new Pose3d[] {coralTarget} : new Pose3d[] {});
+        (coralTarget != null) ? new Rotation2d[] {coralTarget} : new Rotation2d[] {});
     Logger.recordOutput(
         "Vision/Summary/AlgaeTargetPose",
-        (algaeTarget != null) ? new Pose3d[] {algaeTarget} : new Pose3d[] {});
+        (algaeTarget != null) ? new Rotation2d[] {algaeTarget} : new Rotation2d[] {});
   }
 
   @FunctionalInterface

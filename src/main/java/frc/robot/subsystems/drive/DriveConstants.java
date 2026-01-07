@@ -34,6 +34,7 @@ public final class DriveConstants {
   public static final double driveCurrentLimitAmps = 80; // amps
   public static final double turnCurrentLimitAmps = 40; // amps
   public static final double maxLinearAcceleration = 22; // meters/second^2
+  public static final double maxAngularAcceleration = 22;
 
   // Derived values (No need to change)
   public static final double odometryFrequency = canbus.isNetworkFD() ? 250.0 : 100.0;
@@ -47,19 +48,21 @@ public final class DriveConstants {
   };
 
   // Simple profiled PID configuration
-  public static final PIDConstants translationPID = new PIDConstants(5, 0.0, 0.0);
-  public static final PIDConstants rotationPID = new PIDConstants(5, 0.0, 0.0);
+  public static final PIDConstants linearPID = new PIDConstants(5.0, 0.0, 0.0);
+  public static final PIDConstants angularPID = new PIDConstants(4.0, 0.0, 0.0);
 
   // Autopilot configuration
-  public static final APProfile apConfig =
-      new APProfile(
-              new APConstraints()
-                  .withVelocity(maxLinearVelocity)
-                  .withAcceleration(maxLinearAcceleration)
-                  .withJerk(2.0))
+  public static final APProfile apConfigStatic =
+      new APProfile(new APConstraints(100.0, 100.0))
           .withErrorXY(Inches.of(3))
           .withErrorTheta(Degrees.of(3))
-          .withBeelineRadius(Inches.of(5));
+          .withBeelineRadius(Inches.of(12));
+
+  public static final APProfile apConfigDynamic =
+      new APProfile(new APConstraints(100.0, 10))
+          .withErrorXY(Inches.of(6))
+          .withErrorTheta(Degrees.of(6))
+          .withBeelineRadius(Inches.of(12));
 
   // PathPlanner configuration
   public static final RobotConfig ppConfig =

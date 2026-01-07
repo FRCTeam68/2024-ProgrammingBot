@@ -4,6 +4,7 @@ import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.configs.SlotConfigs;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
+import com.therekrab.autopilot.APTarget;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.system.plant.DCMotor;
@@ -24,7 +25,7 @@ import frc.robot.commands.auton.AutonCommands;
 import frc.robot.commands.auton.AutonSequence;
 import frc.robot.commands.auton.AutonSequenceCenter;
 import frc.robot.commands.auton.AutonSequenceSide;
-import frc.robot.subsystems.ShooterConstants;
+import frc.robot.subsystems.ShooterConstants.ShooterConfig;
 import frc.robot.subsystems.drive.Drive;
 import frc.robot.subsystems.drive.DriveConstants;
 import frc.robot.subsystems.drive.GyroIO;
@@ -237,6 +238,23 @@ public class RobotContainer {
     autonChooser.addOption("Center", new AutonSequenceCenter());
     autonChooser.addOption("Left", new AutonSequenceSide(0));
     autonChooser.addOption("Right", new AutonSequenceSide(1));
+
+    SmartDashboard.putData(
+        "Test/autopilot",
+        DriveCommands.autopilotDriveToPose(
+            drive,
+            () ->
+                new APTarget(new Pose2d(2, 2, new Rotation2d(1)))
+                    .withEntryAngle(new Rotation2d(-1))
+                    .withVelocity(0.5)));
+
+    SmartDashboard.putData(
+        "Test/autopilot2",
+        DriveCommands.autopilotDriveToPose(
+            drive,
+            () ->
+                new APTarget(new Pose2d(0, 0, new Rotation2d(2)))
+                    .withEntryAngle(new Rotation2d())));
   }
 
   /** Use this method to define button -> command mappings. */
@@ -256,8 +274,8 @@ public class RobotContainer {
     // driverController.povDown().onTrue(TestCommands.subsystem4(intake, feederLower, feederUpper));
 
     driverController
-        .povDown()
-        .whileTrue(
+        .b()
+        .onTrue(
             Commands.deadline(
                 IntakeCommands.intake(wrist, intake, feederLower, feederUpper, noteSensor),
                 DriveCommands.joystickDriveAtAngle(
@@ -268,7 +286,15 @@ public class RobotContainer {
 
     driverController
         .a()
-        .onTrue(ShootCommands.setStaticShotConfig(shooter, wrist, ShooterConstants.amp));
+        .onTrue(
+            ShootCommands.setStaticShotConfig(
+                shooter, wrist, new ShooterConfig(Wrist.getStartingElevation(), 70, 70)));
+
+    driverController
+        .x()
+        .onTrue(
+            ShootCommands.setStaticShotConfig(
+                shooter, wrist, new ShooterConfig(Wrist.getStartingElevation(), 10, 10)));
 
     driverController
         .leftTrigger()

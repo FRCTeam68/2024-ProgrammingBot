@@ -46,7 +46,7 @@ public final class ShooterConstants {
     public double upperVelocity;
     public double lowerVelocity;
 
-    ShooterConfig(double elevation, double upperVelocity, double lowerVelocity) {
+    public ShooterConfig(double elevation, double upperVelocity, double lowerVelocity) {
       this.elevation = elevation;
       this.upperVelocity = upperVelocity;
       this.lowerVelocity = lowerVelocity;

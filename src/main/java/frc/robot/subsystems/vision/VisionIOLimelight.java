@@ -8,6 +8,8 @@ import edu.wpi.first.networktables.DoubleArrayPublisher;
 import edu.wpi.first.networktables.DoubleArraySubscriber;
 import edu.wpi.first.networktables.DoublePublisher;
 import edu.wpi.first.networktables.DoubleSubscriber;
+import edu.wpi.first.networktables.IntegerPublisher;
+import edu.wpi.first.networktables.IntegerSubscriber;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.RobotController;
 import frc.robot.subsystems.vision.VisionConstants.CameraInfo;
@@ -22,8 +24,10 @@ import java.util.function.Supplier;
 public class VisionIOLimelight implements VisionIO {
   private final CameraInfo cameraInfo;
   private final DoubleArrayPublisher orientationPublisher;
+  private final IntegerPublisher throttlePublisher;
   private final DoublePublisher pipelinePublisher;
-  private final DoubleSubscriber pipelineSubscriber;
+  private final IntegerSubscriber pipelineSubscriber;
+  private final DoubleArraySubscriber hardwareSubscriber;
   private final DoubleSubscriber latencySubscriber;
   private final DoubleSubscriber txSubscriber;
   private final DoubleSubscriber tySubscriber;
@@ -43,8 +47,10 @@ public class VisionIOLimelight implements VisionIO {
 
     var table = NetworkTableInstance.getDefault().getTable(cameraInfo.name);
     orientationPublisher = table.getDoubleArrayTopic("robot_orientation_set").publish();
+    throttlePublisher = table.getIntegerTopic("throttle_set").publish();
     pipelinePublisher = table.getDoubleTopic("pipeline").publish();
-    pipelineSubscriber = table.getDoubleTopic("pipeline").subscribe(0.0);
+    pipelineSubscriber = table.getIntegerTopic("getpipe").subscribe(0);
+    hardwareSubscriber = table.getDoubleArrayTopic("hw").subscribe(new double[] {});
     latencySubscriber = table.getDoubleTopic("tl").subscribe(0.0);
     txSubscriber = table.getDoubleTopic("tx").subscribe(0.0);
     tySubscriber = table.getDoubleTopic("ty").subscribe(0.0);
@@ -155,6 +161,14 @@ public class VisionIOLimelight implements VisionIO {
 
     var rawSample = objectSubscriber.get(new double[] {});
     for (int i = 0; i < rawSample.length; i += 12) {
+      // TODO: make sure this works
+      ObjectObservationType objectObservationType;
+      try {
+        objectObservationType = ObjectObservationType.values()[(int) rawSample[i]];
+      } catch (Exception e) {
+        objectObservationType = ObjectObservationType.values()[0];
+      }
+
       objectObservations.add(
           new ObjectObservation(
               // Center X
@@ -182,7 +196,7 @@ public class VisionIOLimelight implements VisionIO {
               (rawSample[i + 6] >= cameraInfo.objectDetectionEdges[3]),
 
               // Observation id
-              ObjectObservationType.CORAL));
+              objectObservationType));
       // ObjectObservationType.values()[(int) i]));
     }
 
@@ -199,8 +213,13 @@ public class VisionIOLimelight implements VisionIO {
   }
 
   @Override
-  public void setPipline(Integer pipelineIndex) {
+  public void setPipline(int pipelineIndex) {
     pipelinePublisher.accept(pipelineIndex);
+  }
+
+  @Override
+  public void setThrottle(int skippedFrames) {
+    throttlePublisher.accept(skippedFrames);
   }
 
   /** Parses the 3D pose from a Limelight botpose array. */

@@ -9,6 +9,8 @@ import edu.wpi.first.math.filter.Debouncer.DebounceType;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Transform2d;
+import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
@@ -21,6 +23,7 @@ import frc.robot.FieldConstants;
 import frc.robot.subsystems.vision.VisionIO.PoseObservationType;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Supplier;
 import lombok.Getter;
 import org.littletonrobotics.junction.Logger;
@@ -35,9 +38,7 @@ public class Vision extends SubsystemBase {
   private final Debouncer[] connectedDebouncers;
   private final Alert[] disconnectedAlerts;
 
-  // TODO: how do we handle empty targets. null could cause crashes
-  @Getter private Rotation2d coralTarget = null;
-  @Getter private Rotation2d algaeTarget = null;
+  @Getter private Optional<Pose2d> targetNote = null;
 
   public Vision(
       VisionConsumer consumer,
@@ -55,7 +56,7 @@ public class Vision extends SubsystemBase {
     connectedDebouncers = new Debouncer[io.length];
     disconnectedAlerts = new Alert[io.length];
     for (int i = 0; i < inputs.length; i++) {
-      io[i].initRotationSupplier(() -> poseSupplier.get().getRotation());
+      this.io[i].initRotationSupplier(() -> poseSupplier.get().getRotation());
       cameraInfo[i] = io[i].getCameraInfo();
       inputs[i] = new VisionIOInputsAutoLogged();
       connectedDebouncers[i] = new Debouncer(0.5, DebounceType.kFalling);
@@ -91,6 +92,13 @@ public class Vision extends SubsystemBase {
     return tagPose2d;
   }
 
+  // TODO: is this worth doing or can we just add a fan
+  public void setThrottle(int skippedFrames) {
+    for (int i = 0; i < io.length; i++) {
+      if (cameraInfo[i].name == "limelight-four") io[i].setThrottle(skippedFrames);
+    }
+  }
+
   @Override
   public void periodic() {
     for (int i = 0; i < io.length; i++) {
@@ -103,8 +111,7 @@ public class Vision extends SubsystemBase {
     List<Pose3d> allRobotPoses = new LinkedList<>();
     List<Pose3d> allRobotPosesAccepted = new LinkedList<>();
     List<Pose3d> allRobotPosesRejected = new LinkedList<>();
-    List<Pose3d> allObjectPosesCoral = new LinkedList<>();
-    List<Pose3d> allObjectPosesAlgae = new LinkedList<>();
+    List<Pose2d> allObjectPosesNote = new LinkedList<>();
 
     // Loop over cameras
     for (int cameraIndex = 0; cameraIndex < io.length; cameraIndex++) {
@@ -231,29 +238,49 @@ public class Vision extends SubsystemBase {
       allRobotPosesRejected.addAll(robotPosesRejectedMT1);
       allRobotPosesRejected.addAll(robotPosesRejectedMT2);
 
-      List<Pose2d> objectPoseCoral = new LinkedList<>();
-      List<Pose2d> objectPoseAlgae = new LinkedList<>();
-
+      List<Pose2d> objectPosesNote = new LinkedList<>();
+      // TODO: default object in AS will be in the ground. log as pose3d or make custom object
       // Loop over object observations
       for (var observation : inputs[cameraIndex].objectObservations) {
         switch (observation.type()) {
-          case CORAL:
+          case ALGAE:
             break;
 
-          case ALGAE:
+          case NOTE:
+            // TODO: verify this math is mathing
+            // TODO: add in ground plane correction arctan(tan(frame) / cos(camera pitch))
+            objectPosesNote.add(
+                poseSupplier
+                    .get()
+                    .rotateBy(new Rotation2d(cameraInfo[cameraIndex].pose.getRotation().getZ()))
+                    .rotateBy(new Rotation2d(observation.txCenter()).unaryMinus())
+                    .transformBy(
+                        new Transform2d(
+                            new Translation2d(
+                                VisionConstants.distanceEquationNote.applyAsDouble(
+                                    observation.width(), observation.height()),
+                                0.0),
+                            new Rotation2d())));
             break;
         }
       }
 
       Logger.recordOutput(
-          "Vision/" + cameraInfo[cameraIndex].name + "/ObjectDetection/CoralPoses",
-          objectPoseCoral.toArray(new Pose3d[objectPoseCoral.size()]));
-      Logger.recordOutput(
-          "Vision/" + cameraInfo[cameraIndex].name + "/ObjectDetection/AlgaePoses",
-          objectPoseAlgae.toArray(new Pose3d[objectPoseAlgae.size()]));
+          "Vision/" + cameraInfo[cameraIndex].name + "/ObjectDetection/NotePoses",
+          objectPosesNote.toArray(new Pose2d[objectPosesNote.size()]));
+      allObjectPosesNote.addAll(objectPosesNote);
     }
 
-    // TODO: calculate target objects
+    // calculate target object
+    targetNote =
+        Optional.of(
+            switch (allObjectPosesNote.size()) {
+              case 0 -> null;
+
+              case 1 -> allObjectPosesNote.get(0);
+
+              default -> poseSupplier.get().nearest(allObjectPosesNote);
+            });
 
     // Log summary data
     Logger.recordOutput(
@@ -266,19 +293,10 @@ public class Vision extends SubsystemBase {
     Logger.recordOutput(
         "Vision/Summary/RobotPosesRejected",
         allRobotPosesRejected.toArray(new Pose3d[allRobotPosesRejected.size()]));
-
     Logger.recordOutput(
-        "Vision/Summary/CoralPosesAll",
-        allObjectPosesCoral.toArray(new Pose3d[allObjectPosesCoral.size()]));
-    Logger.recordOutput(
-        "Vision/Summary/AlgaePosesAll",
-        allObjectPosesAlgae.toArray(new Pose3d[allObjectPosesAlgae.size()]));
-    Logger.recordOutput(
-        "Vision/Summary/CoralTargetPose",
-        (coralTarget != null) ? new Rotation2d[] {coralTarget} : new Rotation2d[] {});
-    Logger.recordOutput(
-        "Vision/Summary/AlgaeTargetPose",
-        (algaeTarget != null) ? new Rotation2d[] {algaeTarget} : new Rotation2d[] {});
+        "Vision/Summary/NotePosesAll",
+        allObjectPosesNote.toArray(new Pose2d[allObjectPosesNote.size()]));
+    Logger.recordOutput("Vision/Summary/NoteTarget", targetNote.orElse(null));
   }
 
   @FunctionalInterface

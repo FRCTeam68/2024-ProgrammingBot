@@ -77,11 +77,8 @@ public class VisionConstants {
   // List of object tags in the same order of the file uploaded to the limelight
   public static enum ObjectObservationType {
     ALGAE,
-    CORAL
+    NOTE
   }
 
-  public static final DoubleBinaryOperator algaeDistanceEquation =
-      (x, y) -> Math.pow(Math.min(x, y), 2) + 10;
-  public static final DoubleBinaryOperator coralDistanceEquation =
-      (x, y) -> Math.pow(Math.min(x, y), 2) + 10;
+  public static final DoubleBinaryOperator distanceEquationNote = (x, y) -> 1;
 }

@@ -278,23 +278,25 @@ public class RobotContainer {
         .onTrue(
             Commands.deadline(
                 IntakeCommands.intake(wrist, intake, feederLower, feederUpper, noteSensor),
-                DriveCommands.joystickDriveAtAngle(
-                    drive,
-                    () -> -driverController.getLeftY(),
-                    () -> -driverController.getLeftX(),
-                    () -> vision.getTargetX(0))));
+                // TODO: does this work how I think
+                DriveCommands.joystickDriveAtTarget(
+                        drive,
+                        () -> -driverController.getLeftY(),
+                        () -> -driverController.getLeftX(),
+                        () -> vision.getTargetNote().get().getTranslation())
+                    .onlyWhile(() -> vision.getTargetNote().isPresent())));
 
     driverController
         .a()
         .onTrue(
             ShootCommands.setStaticShotConfig(
-                shooter, wrist, new ShooterConfig(Wrist.getStartingElevation(), 70, 70)));
+                shooter, wrist, new ShooterConfig(Wrist.getStartingElevation(), 0, 70)));
 
     driverController
         .x()
         .onTrue(
             ShootCommands.setStaticShotConfig(
-                shooter, wrist, new ShooterConfig(Wrist.getStartingElevation(), 10, 10)));
+                shooter, wrist, new ShooterConfig(Wrist.getStartingElevation(), 0, 10)));
 
     driverController
         .leftTrigger()
@@ -333,6 +335,10 @@ public class RobotContainer {
   /** Loads autonomous paths from storage. This method can be safely be called periodically. */
   public void loadAutonomousPath() {
     AutonUtil.loadPaths(autonChooser.get() != null ? autonChooser.get().getPathNames() : null);
+  }
+
+  public void setCameraThrottle(int skippedFrames) {
+    vision.setThrottle(skippedFrames);
   }
 
   /** Stops all subsystems and cancels all scheduled commands. */

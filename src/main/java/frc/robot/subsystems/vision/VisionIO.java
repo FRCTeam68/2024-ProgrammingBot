@@ -9,6 +9,7 @@ import org.littletonrobotics.junction.AutoLog;
 
 public interface VisionIO {
   @AutoLog
+  // TODO: add hardware metrics
   public static class VisionIOInputs {
     public boolean connected = false;
     public int pipelineIndex = 0;
@@ -73,5 +74,13 @@ public interface VisionIO {
    *
    * @param pipelineIndex Index of the pipeline
    */
-  public default void setPipline(Integer pipelineIndex) {}
+  public default void setPipline(int pipelineIndex) {}
+
+  /**
+   * Set the number of frames to skip between processed frames. This can be used to reduce the
+   * tempature of the camera. Outputs are not zeroed during skipped frames.
+   *
+   * @param skippedFrames Index of the pipeline
+   */
+  public default void setThrottle(int skippedFrames) {}
 }

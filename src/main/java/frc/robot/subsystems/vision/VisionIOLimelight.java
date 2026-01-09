@@ -50,7 +50,8 @@ public class VisionIOLimelight implements VisionIO {
     throttlePublisher = table.getIntegerTopic("throttle_set").publish();
     pipelinePublisher = table.getDoubleTopic("pipeline").publish();
     pipelineSubscriber = table.getIntegerTopic("getpipe").subscribe(0);
-    hardwareSubscriber = table.getDoubleArrayTopic("hw").subscribe(new double[] {});
+    hardwareSubscriber =
+        table.getDoubleArrayTopic("hw").subscribe(new double[] {0.0, 0.0, 0.0, 0.0});
     latencySubscriber = table.getDoubleTopic("tl").subscribe(0.0);
     txSubscriber = table.getDoubleTopic("tx").subscribe(0.0);
     tySubscriber = table.getDoubleTopic("ty").subscribe(0.0);
@@ -73,6 +74,11 @@ public class VisionIOLimelight implements VisionIO {
 
     // Update active pipeline
     inputs.pipelineIndex = (int) pipelineSubscriber.get();
+
+    // Update hardware metrics
+    inputs.ramUsage = hardwareSubscriber.get()[2];
+    inputs.cpuTemperature = hardwareSubscriber.get()[1];
+    inputs.Temperature = hardwareSubscriber.get()[3];
 
     // Update target observation
     inputs.latestTargetObservation =
@@ -182,18 +188,6 @@ public class VisionIOLimelight implements VisionIO {
 
               // Height
               rawSample[i + 11] - rawSample[i + 5],
-
-              // Touching bottom edge
-              (rawSample[i + 5] <= cameraInfo.objectDetectionEdges[0]),
-
-              // Touching top edge
-              (rawSample[i + 11] >= cameraInfo.objectDetectionEdges[1]),
-
-              // Touching left edge
-              (rawSample[i + 4] <= cameraInfo.objectDetectionEdges[2]),
-
-              // Touching right edge
-              (rawSample[i + 6] >= cameraInfo.objectDetectionEdges[3]),
 
               // Observation id
               objectObservationType));

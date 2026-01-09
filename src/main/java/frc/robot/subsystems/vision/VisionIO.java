@@ -9,10 +9,12 @@ import org.littletonrobotics.junction.AutoLog;
 
 public interface VisionIO {
   @AutoLog
-  // TODO: add hardware metrics
   public static class VisionIOInputs {
     public boolean connected = false;
     public int pipelineIndex = 0;
+    public double ramUsage = 0.0;
+    public double cpuTemperature = 0.0;
+    public double Temperature = 0.0;
     public TargetObservation latestTargetObservation =
         new TargetObservation(new Rotation2d(), new Rotation2d());
     public PoseObservation[] poseObservations = new PoseObservation[0];
@@ -38,16 +40,11 @@ public interface VisionIO {
   }
 
   /** Represents an object sample. */
-  // TODO: do we want to log the confidence. We would need to output and parse json.
   public static record ObjectObservation(
-      double txCenter,
-      double tyCenter,
-      double width,
-      double height,
-      boolean touchingBottomEdge,
-      boolean touchingTopEdge,
-      boolean touchingLeftEdge,
-      boolean touchingRightEdge,
+      double txCenterDeg,
+      double tyCenterDeg,
+      double widthPixels,
+      double heightPixels,
       ObjectObservationType type) {}
 
   /**
@@ -77,8 +74,14 @@ public interface VisionIO {
   public default void setPipline(int pipelineIndex) {}
 
   /**
-   * Set the number of frames to skip between processed frames. This can be used to reduce the
-   * tempature of the camera. Outputs are not zeroed during skipped frames.
+   * Set the number of frames to skip between processed frames. This is used to reduce the tempature
+   * of the camera. Outputs are not zeroed during skipped frames.
+   *
+   * <p><b>Recommend Values:
+   *
+   * <p>Disabled:</b> 100-200
+   *
+   * <p><b>Enabled:</b> 0
    *
    * @param skippedFrames Index of the pipeline
    */

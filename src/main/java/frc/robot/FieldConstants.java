@@ -27,8 +27,8 @@ public class FieldConstants {
 
   @Getter
   public enum AprilTagLayoutType {
-    OFFICIAL_2024("2025-official"),
-    OFFICIAL_2025("2024-official");
+    OFFICIAL_2025("2025-official"),
+    OFFICIAL_2024("2024-official");
 
     AprilTagLayoutType(String name) {
       try {

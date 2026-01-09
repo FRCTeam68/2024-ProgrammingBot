@@ -46,6 +46,7 @@ import frc.robot.subsystems.vision.Vision;
 import frc.robot.subsystems.vision.VisionConstants.CameraInfo;
 import frc.robot.subsystems.vision.VisionIO;
 import frc.robot.subsystems.vision.VisionIOLimelight;
+import frc.robot.subsystems.vision.VisionIOSim;
 import frc.robot.subsystems.wrist.Wrist;
 import frc.robot.subsystems.wrist.WristIO;
 import frc.robot.subsystems.wrist.WristIOReal;
@@ -166,7 +167,7 @@ public class RobotContainer {
                 drive::addVisionMeasurement,
                 drive::getPose,
                 drive::getFieldVelocity,
-                new VisionIOLimelight(CameraInfo.LL_4));
+                new VisionIOSim());
 
         wrist = new Wrist(drive::getPose, new WristIOSim());
 
@@ -278,13 +279,13 @@ public class RobotContainer {
         .onTrue(
             Commands.deadline(
                 IntakeCommands.intake(wrist, intake, feederLower, feederUpper, noteSensor),
-                // TODO: does this work how I think
-                DriveCommands.joystickDriveAtTarget(
-                        drive,
-                        () -> -driverController.getLeftY(),
-                        () -> -driverController.getLeftX(),
-                        () -> vision.getTargetNote().get().getTranslation())
-                    .onlyWhile(() -> vision.getTargetNote().isPresent())));
+                // TODO: make this work
+                DriveCommands.joystickDriveAtOptionalTarget(
+                    drive,
+                    () -> -driverController.getLeftY(),
+                    () -> -driverController.getLeftX(),
+                    () -> -driverController.getRightX(),
+                    () -> vision.getTargetNote())));
 
     driverController
         .a()
@@ -337,8 +338,14 @@ public class RobotContainer {
     AutonUtil.loadPaths(autonChooser.get() != null ? autonChooser.get().getPathNames() : null);
   }
 
-  public void setCameraThrottle(int skippedFrames) {
-    vision.setThrottle(skippedFrames);
+  /**
+   * Throttle the number of processed frames. This is used to reduce the tempature of the camera.
+   * Outputs are not zeroed during skipped frames.
+   *
+   * <p>This is only applied to the Limelight 4.
+   */
+  public void setCameraThrottle(boolean throttleCamera) {
+    vision.setThrottle(throttleCamera);
   }
 
   /** Stops all subsystems and cancels all scheduled commands. */
@@ -353,13 +360,13 @@ public class RobotContainer {
   }
 
   /**
-   * Alerts always active:
+   * <b>Alerts always active:</b>
    *
    * <ul>
    *   <li>Controllers disconnected
    * </ul>
    *
-   * Alerts only active while in autonomous and disabled:
+   * <b>Alerts only active while in autonomous and disabled:</b>
    *
    * <ul>
    *   <li>No autonomous selected

@@ -15,7 +15,7 @@ public class VisionConstants {
         "limelight-two",
         new Pose3d(
             new Translation3d(-0.425914, 0.0, 0.254286),
-            new Rotation3d(0.0, Units.degreesToRadians(-15.0), Math.PI)),
+            new Rotation3d(0.0, Units.degreesToRadians(-35.0), Math.PI)),
         1.0,
         new double[] {}),
     LL_3G(
@@ -72,13 +72,11 @@ public class VisionConstants {
       Double.POSITIVE_INFINITY; // No rotation data available
 
   // Object Detection
-  // TODO: do we want to have a confidence threshold here. It is already in the ll setup. It could
-  // be confusing.
   // List of object tags in the same order of the file uploaded to the limelight
   public static enum ObjectObservationType {
     ALGAE,
     NOTE
   }
 
-  public static final DoubleBinaryOperator distanceEquationNote = (x, y) -> 1;
+  public static final DoubleBinaryOperator distanceEquationNote = (x, y) -> x;
 }

@@ -225,7 +225,7 @@ public class Robot extends LoggedRobot {
   /** This function is called once when the robot is disabled. */
   @Override
   public void disabledInit() {
-    robotContainer.setCameraThrottle(200);
+    robotContainer.setCameraThrottle(true);
 
     robotContainer.stopSubsystems();
   }
@@ -240,10 +240,10 @@ public class Robot extends LoggedRobot {
     }
   }
 
-  /** This function is called once when the robot is enabled. */
+  /** This function is called once when the robot is enabled in any mode. */
   @Override
   public void disabledExit() {
-    robotContainer.setCameraThrottle(0);
+    robotContainer.setCameraThrottle(false);
   }
 
   /** This autonomous runs the autonomous command selected by your {@link RobotContainer} class. */

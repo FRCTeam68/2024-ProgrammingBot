@@ -23,6 +23,7 @@ import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.DoubleSupplier;
 import java.util.function.Supplier;
 import org.littletonrobotics.junction.Logger;
@@ -176,6 +177,79 @@ public class DriveCommands {
                           .minus(drive.getPose().getTranslation())
                           .getAngle()
                           .getRadians());
+
+              // Convert to field relative speeds & send command
+              ChassisSpeeds fieldRelativeSpeeds =
+                  new ChassisSpeeds(
+                      linearVelocity.getX() * DriveConstants.maxLinearVelocity,
+                      linearVelocity.getY() * DriveConstants.maxLinearVelocity,
+                      omega);
+              drive.runVelocity(
+                  ChassisSpeeds.fromFieldRelativeSpeeds(
+                      fieldRelativeSpeeds,
+                      AllianceFlipUtil.shouldFlip()
+                          ? drive.getRotation().rotateBy(Rotation2d.kPi)
+                          : drive.getRotation()));
+            },
+            drive)
+
+        // Reset PID controller when command starts
+        .beforeStarting(
+            () -> {
+              angleController.enableContinuousInput(-Math.PI, Math.PI);
+              angleController.reset(
+                  drive.getRotation().getRadians(), drive.getChassisSpeeds().omegaRadiansPerSecond);
+            });
+  }
+
+  /**
+   * Field relative drive command using joystick for linear control and PID for angular control.
+   * Similar to joystickDriveAtAngle but without the need to precalculate angle when pointing at a
+   * single point.
+   */
+  public static Command joystickDriveAtOptionalTarget(
+      Drive drive,
+      DoubleSupplier xSupplier,
+      DoubleSupplier ySupplier,
+      DoubleSupplier omegaSupplier,
+      Supplier<Optional<Translation2d>> targetSupplier) {
+
+    // Configure PID controller
+    ProfiledPIDController angleController =
+        new ProfiledPIDController(
+            DriveConstants.angularPID.kP,
+            DriveConstants.angularPID.kI,
+            DriveConstants.angularPID.kD,
+            new TrapezoidProfile.Constraints(
+                DriveConstants.maxAngularVelocity, DriveConstants.maxAngularAcceleration));
+
+    // Construct command
+    return Commands.run(
+            () -> {
+              // Get linear velocity
+              Translation2d linearVelocity =
+                  getLinearVelocityFromJoysticks(xSupplier.getAsDouble(), ySupplier.getAsDouble());
+
+              // Calculate angular speed
+              double omega;
+              if (targetSupplier.get().isPresent()) {
+                omega =
+                    angleController.calculate(
+                        drive.getRotation().getRadians(),
+                        targetSupplier
+                            .get()
+                            .get()
+                            .rotateAround(drive.getPose().getTranslation(), Rotation2d.kPi)
+                            .minus(drive.getPose().getTranslation())
+                            .getAngle()
+                            .getRadians());
+              } else {
+                // Apply rotation deadband
+                omega = MathUtil.applyDeadband(omegaSupplier.getAsDouble(), DEADBAND);
+
+                // Square rotation value for more precise control
+                omega = Math.copySign(omega * omega, omega) * DriveConstants.maxAngularVelocity;
+              }
 
               // Convert to field relative speeds & send command
               ChassisSpeeds fieldRelativeSpeeds =

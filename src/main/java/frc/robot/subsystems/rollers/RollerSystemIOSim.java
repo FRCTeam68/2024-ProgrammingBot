@@ -17,7 +17,7 @@ public class RollerSystemIOSim implements RollerSystemIO {
 
   private Slot0Configs slotConfig = new Slot0Configs();
   private ControlMode mode = ControlMode.Neutral;
-  private double appliedVoltage = 0;
+  private double appliedVoltage = 0.0;
 
   /**
    * @param motor The motor (or gearbox) attached to system.
